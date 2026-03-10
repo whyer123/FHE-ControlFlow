@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     libomp-dev \
+    libssl-dev \
+    xxd \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenFHE

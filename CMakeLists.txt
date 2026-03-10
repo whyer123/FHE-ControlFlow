@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(FHE_ControlFlow)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+simd+crypto+crc")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find OpenFHE
@@ -28,6 +29,8 @@ add_executable(demo_loop
     src/algorithms/fhe_cmp.cpp
     src/selector/trusted_selector.cpp
     src/pipeline/loop_controller.cpp
-    src/gc/gc_builder.cpp
 )
-target_link_libraries(demo_loop ${OpenFHE_LIBRARIES})
+
+target_link_libraries(demo_loop 
+    ${OpenFHE_LIBRARIES}
+)

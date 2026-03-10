@@ -2,11 +2,11 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/algorithms/fhe_cmp.h"
-#include "src/selector/selector_api.h"
+#include "src/selector/abe_selector.cpp"
 #include "src/pipeline/loop_controller.h"
 
 int main() {
-    std::cout << "--- FHE Control Flow Prototype ---" << std::endl;
+    std::cout << "--- FHE Control Flow Prototype (ABE GKP13 Single-Party) ---" << std::endl;
     
     // 1. Initialize FHE Context
     std::cout << "Initializing Context and Keys..." << std::endl;
@@ -16,8 +16,8 @@ int main() {
     FHEGates gates(fhe_ctx);
     FHECompare cmp(gates);
     
-    // 3. Initialize Selector
-    TrustedSelector selector(fhe_ctx);
+    // 3. Initialize ABE Selector (Single-Party Simulation)
+    ABESelector selector(fhe_ctx);
     
     // 4. Initialize Pipeline
     LoopController loop(fhe_ctx, gates, cmp, selector);

@@ -23,19 +23,25 @@ LWECiphertext FHECompare::Equal(const std::vector<LWECiphertext>& x, const std::
 LWECiphertext FHECompare::GreaterThan(const std::vector<LWECiphertext>& x, const std::vector<LWECiphertext>& y) {
     if (x.empty() || x.size() != y.size()) return LWECiphertext();
     
-    // We will accumulate the result from LSB to MSB.
+    // x > y is equivalent to y < x.
+    // We can use a ripple-borrow subtractor for (y - x). 
+    // If y < x, the final borrow-out will be 1.
+    // borrow_out = NOT(y) AND x (for bit 0)
+    // borrow_i = (NOT(y_i) AND x_i) OR (NOT(y_i XOR x_i) AND borrow_{i-1})
+    
     auto not_y0 = fhe_gates.EvalNOT(y[0]);
-    LWECiphertext result = fhe_gates.EvalAND(x[0], not_y0); // gt_0
+    LWECiphertext borrow = fhe_gates.EvalAND(not_y0, x[0]);
     
     for (size_t i = 1; i < x.size(); ++i) {
         auto not_yi = fhe_gates.EvalNOT(y[i]);
-        auto gt_i = fhe_gates.EvalAND(x[i], not_yi);
-        auto eq_i = fhe_gates.EvalXNOR(x[i], y[i]);
+        auto gen = fhe_gates.EvalAND(not_yi, x[i]); // Generate borrow: y_i=0, x_i=1
         
-        auto tmp = fhe_gates.EvalAND(eq_i, result);
-        result = fhe_gates.EvalOR(gt_i, tmp);
+        auto eq = fhe_gates.EvalXNOR(y[i], x[i]);   // Propagate borrow: y_i == x_i
+        auto prop = fhe_gates.EvalAND(eq, borrow);
+        
+        borrow = fhe_gates.EvalOR(gen, prop);
     }
-    return result;
+    return borrow; // If y < x, final borrow is 1, meaning x > y.
 }
 
 LWECiphertext FHECompare::LessThan(const std::vector<LWECiphertext>& x, const std::vector<LWECiphertext>& y) {

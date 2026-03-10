@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+demo_mock
+*.o
+*.a
+*.so
+
+# IDEs
+.vscode/
+
+# Docker
+.docker/
+
+# OS files
+.DS_Store

@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  fhe_control_flow:
+    build: .
+    volumes:
+      - .:/app
+    command: bash -c "mkdir -p build && cd build && cmake .. && make -j$$(nproc) && ./demo_loop"

@@ -1,0 +1,9 @@
+.git
+.docker
+.vscode
+build
+demo_mock
+*.o
+*.a
+*.so
+.DS_Store

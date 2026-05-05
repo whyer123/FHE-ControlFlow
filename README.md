@@ -20,6 +20,8 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
 
+See `report.md` for a Chinese explanation of the demo loop output.
+
 ## Getting Started
 
 ### Using Docker (自動執行)
@@ -28,6 +30,18 @@ See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design a
 docker-compose up --build
 ```
 這會在背景自動編譯並執行展示程式，結束後自動跳出。
+
+快速跑 mock GC demo：
+
+```bash
+docker-compose run --rm gc_mock
+```
+
+跑完整 OpenFHE demo：
+
+```bash
+docker-compose run --rm fhe_control_flow
+```
 
 ### 直接進入 Docker 內部互動執行 (Interactive Mode)
 

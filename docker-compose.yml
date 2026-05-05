@@ -1,8 +1,16 @@
-version: '3.8'
-
 services:
   fhe_control_flow:
-    build: .
+    build:
+      context: .
+      target: openfhe-runtime
     volumes:
       - .:/app
-    command: bash -c "mkdir -p build && cd build && cmake .. && make -j$$(nproc) && ./demo_loop"
+    command: bash -lc "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel 2 && ./build/demo_loop"
+
+  gc_mock:
+    build:
+      context: .
+      target: gc-mock
+    volumes:
+      - .:/app
+    command: bash -lc "./build_mock.sh"

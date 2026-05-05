@@ -1,4 +1,5 @@
 #include <iostream>
+#include "src/algorithms/fhe_arithmetic.h"
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
@@ -13,12 +14,13 @@ int main() {
     
     // 2. Initialize bit-level gates
     FHEGates gates(fhe_ctx);
+    FHEArithmetic arithmetic(gates);
     
     // 3. Build Algorithm 0: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b)).
     ControlledRevealCircuit gc_f(fhe_ctx, gates);
     EncryptedPredicateEvaluator& predicate_gc = gc_f;
     
-    // Encrypted endpoints for the loop: start at a' and stop at b'.
+    // Encrypted endpoints for the loop: start at a' and stop after b'.
     int64_t start_value = 3;
     int64_t target_value = 7;
     size_t bit_length = 4; // Use small bit length for speed prototyping
@@ -44,11 +46,23 @@ int main() {
         std::cout << ")" << std::endl;
     }
     
-    // 4. Run Algorithm 0 for the encrypted predicate only.
-    bool predicate = predicate_gc.Evaluate(enc_a, enc_b);
-    
-    std::cout << "GC_f(a', b') revealed predicate [a <= b] = "
-              << (predicate ? 1 : 0) << std::endl;
-    std::cout << "Demo completed without decrypting a, b, or the encrypted state." << std::endl;
+    // 4. Evaluator loop: runtime and predicate bits are intentionally revealed.
+    auto state = enc_a;
+    size_t iterations = 0;
+    while (true) {
+        bool predicate = predicate_gc.Evaluate(state, enc_b);
+        std::cout << "GC_f(x', b') revealed predicate [x <= b] = "
+                  << (predicate ? 1 : 0) << std::endl;
+
+        if (!predicate) {
+            break;
+        }
+
+        ++iterations;
+        state = arithmetic.Increment(state);
+    }
+
+    std::cout << "Encrypted loop iterations executed: " << iterations << std::endl;
+    std::cout << "Demo completed without decrypting a, b, or x." << std::endl;
     return 0;
 }

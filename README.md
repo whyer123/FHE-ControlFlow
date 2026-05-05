@@ -14,6 +14,8 @@ The predicate is evaluated as a bit-level comparator using `AND`, `XOR`, and `NO
 
 The demo calls the predicate through an `EncryptedPredicateEvaluator` interface so the current controlled-reveal prototype can later be replaced by an offline garbled-circuit artifact.
 
+The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= b]`, then updates the encrypted state with a bit-level homomorphic increment.
+
 ## Getting Started
 
 ### Using Docker (自動執行)

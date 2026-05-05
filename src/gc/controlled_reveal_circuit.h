@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/gc/predicate_gc.h"
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include <cstddef>
@@ -30,7 +31,7 @@ struct BitLevelCircuit {
 
 std::string BitGateKindToString(BitGateKind kind);
 
-class ControlledRevealCircuit {
+class ControlledRevealCircuit : public EncryptedPredicateEvaluator {
 public:
     ControlledRevealCircuit(FHEContextWrapper& ctx, FHEGates& gates)
         : fhe_ctx(ctx), fhe_gates(gates) {}
@@ -42,7 +43,9 @@ public:
     bool RevealPredicateOnly(const LWECiphertext& predicate_ct);
 
     bool Evaluate(const std::vector<LWECiphertext>& x,
-                  const std::vector<LWECiphertext>& bound);
+                  const std::vector<LWECiphertext>& bound) override;
+
+    PredicateGCArtifact ArtifactInfo(size_t bit_length) const override;
 
     BitLevelCircuit DescribeLessOrEqualCircuit(size_t bit_length) const;
 

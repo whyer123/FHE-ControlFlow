@@ -2,6 +2,7 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
+#include "src/gc/predicate_gc.h"
 
 int main() {
     std::cout << "--- Controlled Reveal Predicate Prototype ---" << std::endl;
@@ -15,6 +16,7 @@ int main() {
     
     // 3. Build Algorithm 0: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b)).
     ControlledRevealCircuit gc_f(fhe_ctx, gates);
+    EncryptedPredicateEvaluator& predicate_gc = gc_f;
     
     // Encrypted endpoints for the loop: start at a' and stop at b'.
     int64_t start_value = 3;
@@ -26,8 +28,9 @@ int main() {
     auto enc_b = fhe_ctx.EncryptInteger(target_value, bit_length);
 
     auto circuit = gc_f.DescribeLessOrEqualCircuit(bit_length);
-    std::cout << "Circuit_g name: " << circuit.name << std::endl;
-    std::cout << "Circuit_g gate count: " << circuit.gates.size() << std::endl;
+    auto artifact = predicate_gc.ArtifactInfo(bit_length);
+    std::cout << "GC artifact name: " << artifact.name << std::endl;
+    std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
     std::cout << "Circuit_g gates:" << std::endl;
     for (const auto& gate : circuit.gates) {
         std::cout << "  " << gate.output << " <- "
@@ -42,7 +45,7 @@ int main() {
     }
     
     // 4. Run Algorithm 0 for the encrypted predicate only.
-    bool predicate = gc_f.Evaluate(enc_a, enc_b);
+    bool predicate = predicate_gc.Evaluate(enc_a, enc_b);
     
     std::cout << "GC_f(a', b') revealed predicate [a <= b] = "
               << (predicate ? 1 : 0) << std::endl;

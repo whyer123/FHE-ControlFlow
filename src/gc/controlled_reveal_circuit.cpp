@@ -63,6 +63,11 @@ bool ControlledRevealCircuit::Evaluate(const std::vector<LWECiphertext>& x,
     return RevealPredicateOnly(predicate_ct);
 }
 
+PredicateGCArtifact ControlledRevealCircuit::ArtifactInfo(size_t bit_length) const {
+    auto circuit = DescribeLessOrEqualCircuit(bit_length);
+    return {circuit.name, circuit.input_bit_length, circuit.gates.size()};
+}
+
 BitLevelCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_length) const {
     if (bit_length == 0) {
         throw std::invalid_argument("Circuit bit length must be greater than zero.");

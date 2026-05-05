@@ -22,29 +22,37 @@ std::vector<LWECiphertext> LoopController::Decrement(const std::vector<LWECipher
     return result;
 }
 
-void LoopController::RunWhileLoop(std::vector<LWECiphertext> x) {
-    auto zero = fhe_ctx.EncryptInteger(0, x.size());
+std::vector<LWECiphertext> LoopController::RunWhileLoop(
+    std::vector<LWECiphertext> x, const std::vector<LWECiphertext>& target) {
     int iter_count = 0;
+    auto state_token = sel.BootstrapToken();
     
-    std::cout << "[LoopController] Starting while (x > 0) loop..." << std::endl;
-    while (true) {
-        // Evaluate condition: cond = (x > 0)
-        auto cond_bit = fhe_cmp.GreaterThan(x, zero);
-        
-        // Extract condition bit using Simulated Single-Party ABE Token Evaluation
-        bool should_continue = sel.ExtractConditionBit(cond_bit);
-        
-        if (!should_continue) {
-            std::cout << "[LoopController] Loop terminated. condition = false." << std::endl;
-            break;
+    std::cout << "[LoopController] Starting ABE2-driven while (x > target) loop..." << std::endl;
+    while (!sel.IsTerminal(state_token)) {
+        const auto node_kind = sel.GetNodeKind(state_token);
+        const auto state_name = sel.DescribeState(state_token);
+
+        if (node_kind == ABE2NodeKind::Conditional) {
+            auto cond_bit = fhe_cmp.GreaterThan(x, target);
+            auto transition = sel.EvaluateConditional(state_token, cond_bit);
+            std::cout << "[LoopController] " << state_name << " -> "
+                      << sel.DescribeState(transition.next_token) << std::endl;
+            state_token = transition.next_token;
+            continue;
         }
-        
-        iter_count++;
-        std::cout << "[LoopController] Iteration " << iter_count << " executed." << std::endl;
-        
-        // Decrement x
-        x = Decrement(x);
+
+        if (node_kind == ABE2NodeKind::Work) {
+            iter_count++;
+            std::cout << "[LoopController] Iteration " << iter_count << " executed." << std::endl;
+            x = Decrement(x);
+            state_token = sel.EvaluateUnconditional(state_token).next_token;
+            continue;
+        }
+
+        break;
     }
     
     std::cout << "[LoopController] Total iterations performed: " << iter_count << std::endl;
+    std::cout << "[LoopController] Final encrypted state reached target ciphertext domain." << std::endl;
+    return x;
 }

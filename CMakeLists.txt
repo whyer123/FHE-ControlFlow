@@ -26,7 +26,9 @@ add_executable(demo_loop
     examples/demo_loop.cpp
     src/fhe/fhe_context.cpp
     src/gates/fhe_gates.cpp
+    src/gc/controlled_reveal_circuit.cpp
     src/algorithms/fhe_cmp.cpp
+    src/selector/abe_selector.cpp
     src/selector/trusted_selector.cpp
     src/pipeline/loop_controller.cpp
 )

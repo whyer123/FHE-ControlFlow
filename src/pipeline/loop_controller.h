@@ -13,8 +13,9 @@ public:
     // Decrements a binary integer
     std::vector<LWECiphertext> Decrement(const std::vector<LWECiphertext>& x);
 
-    // Executes a simple while (x > 0) { x = x - 1; } loop
-    void RunWhileLoop(std::vector<LWECiphertext> x);
+    // Executes while (x > target) { x = x - 1; } and returns the final encrypted x.
+    std::vector<LWECiphertext> RunWhileLoop(std::vector<LWECiphertext> x,
+                                            const std::vector<LWECiphertext>& target);
 
 private:
     FHEContextWrapper& fhe_ctx;

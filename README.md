@@ -16,6 +16,8 @@ The demo calls the predicate through an `EncryptedPredicateEvaluator` interface 
 
 The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= b]`, then updates the encrypted state with a bit-level homomorphic increment.
 
+`Circuit_g` is exported as a garbling-ready Boolean circuit with stable wire ids, gate ids, input wires, and output wires.
+
 ## Getting Started
 
 ### Using Docker (自動執行)

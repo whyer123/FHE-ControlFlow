@@ -1,31 +1,5 @@
 #include "controlled_reveal_circuit.h"
 #include <stdexcept>
-#include <utility>
-
-namespace {
-
-void AddGate(BitLevelCircuit& circuit, BitGateKind kind,
-             std::vector<std::string> inputs, const std::string& output) {
-    circuit.gates.push_back({kind, std::move(inputs), output});
-}
-
-} // namespace
-
-std::string BitGateKindToString(BitGateKind kind) {
-    switch (kind) {
-    case BitGateKind::And:
-        return "AND";
-    case BitGateKind::Xor:
-        return "XOR";
-    case BitGateKind::Not:
-        return "NOT";
-    case BitGateKind::Mux:
-        return "MUX";
-    case BitGateKind::Output:
-        return "OUTPUT";
-    }
-    return "UNKNOWN";
-}
 
 LWECiphertext ControlledRevealCircuit::EvalLessOrEqualPredicate(
     const std::vector<LWECiphertext>& x,
@@ -68,38 +42,38 @@ PredicateGCArtifact ControlledRevealCircuit::ArtifactInfo(size_t bit_length) con
     return {circuit.name, circuit.input_bit_length, circuit.gates.size()};
 }
 
-BitLevelCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_length) const {
+BooleanCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_length) const {
     if (bit_length == 0) {
         throw std::invalid_argument("Circuit bit length must be greater than zero.");
     }
 
-    BitLevelCircuit circuit;
-    circuit.name = "g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))";
-    circuit.input_bit_length = bit_length;
+    BooleanCircuitBuilder builder(
+        "g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))", bit_length);
+    std::vector<WireId> x_wires;
+    std::vector<WireId> bound_wires;
 
     for (size_t i = 0; i < bit_length; ++i) {
-        circuit.input_wires.push_back("x_" + std::to_string(i));
-        circuit.input_wires.push_back("b_" + std::to_string(i));
+        const auto idx = std::to_string(i);
+        x_wires.push_back(builder.AddInputWire("x_" + idx));
+        bound_wires.push_back(builder.AddInputWire("b_" + idx));
     }
 
-    AddGate(circuit, BitGateKind::Not, {"b_0"}, "not_b_0");
-    AddGate(circuit, BitGateKind::And, {"not_b_0", "x_0"}, "gt_0");
+    auto not_bound = builder.AddGate(BitGateKind::Not, {bound_wires[0]}, "not_b_0");
+    WireId greater = builder.AddGate(BitGateKind::And, {not_bound, x_wires[0]}, "gt_0");
 
-    std::string greater = "gt_0";
     for (size_t i = 1; i < bit_length; ++i) {
         const auto idx = std::to_string(i);
-        AddGate(circuit, BitGateKind::Not, {"b_" + idx}, "not_b_" + idx);
-        AddGate(circuit, BitGateKind::And, {"not_b_" + idx, "x_" + idx}, "gen_" + idx);
-        AddGate(circuit, BitGateKind::Xor, {"b_" + idx, "x_" + idx}, "xor_" + idx);
-        AddGate(circuit, BitGateKind::Not, {"xor_" + idx}, "eq_" + idx);
-        AddGate(circuit, BitGateKind::And, {"eq_" + idx, greater}, "prop_" + idx);
-        AddGate(circuit, BitGateKind::Xor, {"gen_" + idx, "prop_" + idx}, "gt_" + idx);
-        greater = "gt_" + idx;
+        not_bound = builder.AddGate(BitGateKind::Not, {bound_wires[i]}, "not_b_" + idx);
+        auto generate = builder.AddGate(BitGateKind::And, {not_bound, x_wires[i]}, "gen_" + idx);
+        auto xor_bits = builder.AddGate(BitGateKind::Xor, {bound_wires[i], x_wires[i]}, "xor_" + idx);
+        auto equal_bits = builder.AddGate(BitGateKind::Not, {xor_bits}, "eq_" + idx);
+        auto propagate = builder.AddGate(BitGateKind::And, {equal_bits, greater}, "prop_" + idx);
+        greater = builder.AddGate(BitGateKind::Xor, {generate, propagate}, "gt_" + idx);
     }
 
-    AddGate(circuit, BitGateKind::Not, {greater}, "le");
-    AddGate(circuit, BitGateKind::Output, {"le"}, "predicate_bit");
-    circuit.output_wire = "predicate_bit";
+    auto less_or_equal = builder.AddGate(BitGateKind::Not, {greater}, "le");
+    auto predicate = builder.AddGate(BitGateKind::Output, {less_or_equal}, "predicate_bit");
+    builder.AddOutputWire(predicate);
 
-    return circuit;
+    return builder.Build();
 }

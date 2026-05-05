@@ -35,13 +35,15 @@ int main() {
     std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
     std::cout << "Circuit_g gates:" << std::endl;
     for (const auto& gate : circuit.gates) {
-        std::cout << "  " << gate.output << " <- "
+        std::cout << "  g" << gate.id << ": w" << gate.output
+                  << "(" << circuit.Wire(gate.output).name << ") <- "
                   << BitGateKindToString(gate.kind) << "(";
         for (size_t i = 0; i < gate.inputs.size(); ++i) {
             if (i > 0) {
                 std::cout << ", ";
             }
-            std::cout << gate.inputs[i];
+            std::cout << "w" << gate.inputs[i]
+                      << "(" << circuit.Wire(gate.inputs[i]).name << ")";
         }
         std::cout << ")" << std::endl;
     }

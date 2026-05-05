@@ -1,35 +1,11 @@
 #pragma once
 
+#include "src/gc/boolean_circuit.h"
 #include "src/gc/predicate_gc.h"
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include <cstddef>
-#include <string>
 #include <vector>
-
-enum class BitGateKind {
-    And,
-    Xor,
-    Not,
-    Mux,
-    Output
-};
-
-struct BitGate {
-    BitGateKind kind;
-    std::vector<std::string> inputs;
-    std::string output;
-};
-
-struct BitLevelCircuit {
-    std::string name;
-    size_t input_bit_length = 0;
-    std::vector<std::string> input_wires;
-    std::vector<BitGate> gates;
-    std::string output_wire;
-};
-
-std::string BitGateKindToString(BitGateKind kind);
 
 class ControlledRevealCircuit : public EncryptedPredicateEvaluator {
 public:
@@ -47,7 +23,7 @@ public:
 
     PredicateGCArtifact ArtifactInfo(size_t bit_length) const override;
 
-    BitLevelCircuit DescribeLessOrEqualCircuit(size_t bit_length) const;
+    BooleanCircuit DescribeLessOrEqualCircuit(size_t bit_length) const;
 
 private:
     FHEContextWrapper& fhe_ctx;

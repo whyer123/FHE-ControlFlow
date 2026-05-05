@@ -75,10 +75,10 @@ b' = [b_0', b_1', ...]
 greater = [x > b]'
 ```
 
-接著產生 mock ciphertext：
+接著產生 mock predicate message：
 
 ```text
-mock_predicate_ct = NOT(greater) = [x <= b]'
+predicate_msg = NOT(greater) = [x <= b]
 ```
 
 整個過程只使用 bit-level gates：
@@ -95,17 +95,42 @@ AND, XOR, NOT
 ControlledRevealCircuit::RevealPredicateOnly(predicate_ct)
 ```
 
-在目前 mock circuit 裡，解密階段先用 identity circuit 表示：
+目前 mock demo 使用固定的一組 toy secret key：
 
 ```text
-mock_dec_out = mock_predicate_ct XOR hardcoded_mock_hsk_bit
+hsk = [1, 0, 1, 1]
 ```
 
-其中 `hardcoded_mock_hsk_bit` 是寫進 GC 的 secret constant wire，目前值固定為 `0`。這代表 mock FHE 的 ciphertext bit 本身就是 plaintext bit，所以 mock decrypt 是 identity。它的目的不是宣稱已經完成真實 OpenFHE decryption，而是先讓 `Circuit_g` 的形狀明確包含：
+也使用固定的 mock ciphertext mask：
+
+```text
+mask = [1, 1, 1, 1]
+```
+
+mock ciphertext body 先被表示成：
+
+```text
+mock_eval_pad = <mask, hsk> mod 2
+mock_predicate_ct_body = predicate_msg XOR mock_eval_pad
+```
+
+decryption 子電路會重新計算：
+
+```text
+mock_dec_term_i = mask_i AND hsk_i
+mock_dec_pad = XOR_i(mock_dec_term_i)
+mock_dec_out = mock_predicate_ct_body XOR mock_dec_pad
+```
+
+因為 `mock_dec_pad = mock_eval_pad`，所以 `mock_dec_out` 會回到原本的 predicate bit。
+
+這仍然不是 OpenFHE 真實 LWE decryption。它的目的，是先讓 `Circuit_g` 的形狀明確包含：
 
 ```text
 Eval(f) -> Dec
 ```
+
+而且 `hsk` bits 是 hardcoded secret constant wires，會被 garble 進 GC artifact。
 
 最後才輸出一個 bit：
 
@@ -190,8 +215,11 @@ demo 會印出類似：
 g0: w8(not_b_0) <- NOT(w1(b_0))
 g1: w9(gt_0) <- AND(w8(not_b_0), w0(x_0))
 ...
-g21: w30(mock_dec_out) <- XOR(w28(mock_predicate_ct), w29(hardcoded_mock_hsk_bit))
-g22: w31(predicate_bit) <- OUTPUT(w30(mock_dec_out))
+g20: w28(predicate_msg) <- NOT(w27(gt_3))
+g21: w30(mock_predicate_ct_body) <- XOR(w28(predicate_msg), w29(mock_eval_pad_bit))
+...
+g29: w41(mock_dec_out) <- XOR(w30(mock_predicate_ct_body), w40(mock_dec_pad_3))
+g30: w42(predicate_bit) <- OUTPUT(w41(mock_dec_out))
 ```
 
 這個格式的目的，是讓 GC backend 不需要解析字串公式，而是直接遍歷 gate list：

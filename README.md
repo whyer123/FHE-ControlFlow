@@ -12,16 +12,6 @@ g(c_x,c_b) = FHE.Dec(hsk, FHE.Eval([x <= b], c_x, c_b))
 
 The predicate is evaluated as a bit-level comparator using `AND`, `XOR`, and `NOT`, then only the resulting predicate bit is decrypted. The demo reveals `[a <= b]` and does not decrypt `a`, `b`, or the encrypted loop state.
 
-## Current ABE2 Prototype
-
-The current implementation models the GKP13-style offline control-flow idea with an `ABESelector` that advances a state token through:
-
-- `CHECK_CONDITION`
-- `LOOP_BODY`
-- `HALT`
-
-This means the evaluator can keep executing the loop without calling back to the client for each branch decision. The demo now runs from an encrypted `a'` down to an encrypted `b'`, and it does not print the final plaintext state. The current limitation is that the branch extraction is still simulated locally with the FHE secret key, because the project does not yet contain a real ABE backend or garbled-circuit/ABE integration layer.
-
 ## Getting Started
 
 ### Using Docker (自動執行)

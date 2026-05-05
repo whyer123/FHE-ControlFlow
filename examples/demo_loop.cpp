@@ -37,8 +37,10 @@ int main() {
     auto garbled_artifact = garbler.Garble(circuit);
     std::cout << "GC artifact name: " << artifact.name << std::endl;
     std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
-    std::cout << "Garbled wire label pairs: "
-              << garbled_artifact.all_wire_labels.size() << std::endl;
+    std::cout << "Public input label pairs: "
+              << garbled_artifact.public_input_labels.size() << std::endl;
+    std::cout << "Hardcoded secret/constant labels: "
+              << garbled_artifact.constant_labels.size() << std::endl;
     std::cout << "Circuit_g constant wires: "
               << circuit.constant_wires.size() << std::endl;
     std::cout << "Circuit_g gates:" << std::endl;

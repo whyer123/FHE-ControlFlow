@@ -98,10 +98,10 @@ ControlledRevealCircuit::RevealPredicateOnly(predicate_ct)
 在目前 mock circuit 裡，解密階段先用 identity circuit 表示：
 
 ```text
-mock_dec_out = mock_predicate_ct XOR mock_hsk_zero
+mock_dec_out = mock_predicate_ct XOR hardcoded_mock_hsk_bit
 ```
 
-其中 `mock_hsk_zero` 是 constant `0` wire。這代表 mock FHE 的 ciphertext bit 本身就是 plaintext bit，所以 mock decrypt 是 identity。它的目的不是宣稱已經完成真實 OpenFHE decryption，而是先讓 `Circuit_g` 的形狀明確包含：
+其中 `hardcoded_mock_hsk_bit` 是寫進 GC 的 secret constant wire，目前值固定為 `0`。這代表 mock FHE 的 ciphertext bit 本身就是 plaintext bit，所以 mock decrypt 是 identity。它的目的不是宣稱已經完成真實 OpenFHE decryption，而是先讓 `Circuit_g` 的形狀明確包含：
 
 ```text
 Eval(f) -> Dec
@@ -190,7 +190,7 @@ demo 會印出類似：
 g0: w8(not_b_0) <- NOT(w1(b_0))
 g1: w9(gt_0) <- AND(w8(not_b_0), w0(x_0))
 ...
-g21: w30(mock_dec_out) <- XOR(w28(mock_predicate_ct), w29(mock_hsk_zero))
+g21: w30(mock_dec_out) <- XOR(w28(mock_predicate_ct), w29(hardcoded_mock_hsk_bit))
 g22: w31(predicate_bit) <- OUTPUT(w30(mock_dec_out))
 ```
 
@@ -215,8 +215,8 @@ src/gc/minimal_garbled_circuit.cpp
 它做三件事：
 
 1. 對每條 wire 建立兩個 labels。
-2. 複製 circuit gate list 成 garbled artifact。
-3. 在 mock mode 下，把 input bits 編成 labels，沿著 labels evaluate，最後 decode output label。
+2. 對每個 gate 產生 garbled table。
+3. 在 mock mode 下，把 input bits 編成 labels，沿著 garbled tables evaluate，最後 decode output label。
 
 目前依照我們的新假設：
 
@@ -224,7 +224,7 @@ src/gc/minimal_garbled_circuit.cpp
 Evaluator 可以持有所有 input labels。
 ```
 
-因此這裡不做 OT，也不限制 single-use。安全目標不是防止 Evaluator 查詢所有 predicate，而是讓 Evaluator 只能查：
+因此這裡不做 OT，也不限制 single-use。公開給 Evaluator 的是 `x'`、`b'` 的 input labels、garbled tables、hardcoded hsk/constant 的 selected label，以及 output decoding table。安全目標不是防止 Evaluator 查詢所有 predicate，而是讓 Evaluator 只能查：
 
 ```text
 g(c_x, c_b)

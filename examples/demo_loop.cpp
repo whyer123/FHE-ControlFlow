@@ -3,7 +3,9 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
+#include "src/gc/minimal_garbled_circuit.h"
 #include "src/gc/predicate_gc.h"
+#include <unordered_map>
 
 int main() {
     std::cout << "--- Controlled Reveal Predicate Prototype ---" << std::endl;
@@ -31,8 +33,12 @@ int main() {
 
     auto circuit = gc_f.DescribeLessOrEqualCircuit(bit_length);
     auto artifact = predicate_gc.ArtifactInfo(bit_length);
+    MinimalGarbledCircuit garbler;
+    auto garbled_artifact = garbler.Garble(circuit);
     std::cout << "GC artifact name: " << artifact.name << std::endl;
     std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
+    std::cout << "Garbled wire label pairs: "
+              << garbled_artifact.all_wire_labels.size() << std::endl;
     std::cout << "Circuit_g gates:" << std::endl;
     for (const auto& gate : circuit.gates) {
         std::cout << "  g" << gate.id << ": w" << gate.output
@@ -47,6 +53,22 @@ int main() {
         }
         std::cout << ")" << std::endl;
     }
+
+#ifdef MOCK_OPENFHE
+    std::unordered_map<WireId, bool> demo_gc_inputs;
+    for (size_t i = 0; i < bit_length; ++i) {
+        demo_gc_inputs[circuit.input_wires[2 * i]] = enc_a[i].bit;
+        demo_gc_inputs[circuit.input_wires[2 * i + 1]] = enc_b[i].bit;
+    }
+    auto input_labels = garbler.EncodeInputs(garbled_artifact, demo_gc_inputs);
+    auto output_labels = garbler.EvaluateLabels(garbled_artifact, input_labels);
+    auto garbled_outputs = garbler.DecodeOutputs(garbled_artifact, output_labels);
+    std::cout << "Minimal GC evaluated [a <= b] = "
+              << (garbled_outputs.front() ? 1 : 0) << std::endl;
+#else
+    std::cout << "Minimal GC direct evaluation is shown only in MOCK_OPENFHE mode."
+              << std::endl;
+#endif
     
     // 4. Evaluator loop: runtime and predicate bits are intentionally revealed.
     auto state = enc_a;

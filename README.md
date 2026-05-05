@@ -18,6 +18,8 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 `Circuit_g` is exported as a garbling-ready Boolean circuit with stable wire ids, gate ids, input wires, and output wires.
 
+See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
+
 ## Getting Started
 
 ### Using Docker (自動執行)

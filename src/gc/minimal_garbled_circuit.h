@@ -22,6 +22,7 @@ struct GarbledCircuitArtifact {
     std::string name;
     std::vector<WireId> input_wires;
     std::vector<WireId> output_wires;
+    std::unordered_map<WireId, bool> constant_wires;
     std::vector<GarbledGate> gates;
     std::unordered_map<WireId, WireLabels> all_wire_labels;
 };

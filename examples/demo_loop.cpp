@@ -39,6 +39,8 @@ int main() {
     std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
     std::cout << "Garbled wire label pairs: "
               << garbled_artifact.all_wire_labels.size() << std::endl;
+    std::cout << "Circuit_g constant wires: "
+              << circuit.constant_wires.size() << std::endl;
     std::cout << "Circuit_g gates:" << std::endl;
     for (const auto& gate : circuit.gates) {
         std::cout << "  g" << gate.id << ": w" << gate.output

@@ -75,10 +75,10 @@ b' = [b_0', b_1', ...]
 greater = [x > b]'
 ```
 
-最後回傳：
+接著產生 mock ciphertext：
 
 ```text
-NOT(greater) = [x <= b]'
+mock_predicate_ct = NOT(greater) = [x <= b]'
 ```
 
 整個過程只使用 bit-level gates：
@@ -95,13 +95,19 @@ AND, XOR, NOT
 ControlledRevealCircuit::RevealPredicateOnly(predicate_ct)
 ```
 
-這一步只做：
+在目前 mock circuit 裡，解密階段先用 identity circuit 表示：
 
 ```text
-FHE.Dec(hsk, predicate_ct)
+mock_dec_out = mock_predicate_ct XOR mock_hsk_zero
 ```
 
-也就是只揭露一個 bit：
+其中 `mock_hsk_zero` 是 constant `0` wire。這代表 mock FHE 的 ciphertext bit 本身就是 plaintext bit，所以 mock decrypt 是 identity。它的目的不是宣稱已經完成真實 OpenFHE decryption，而是先讓 `Circuit_g` 的形狀明確包含：
+
+```text
+Eval(f) -> Dec
+```
+
+最後才輸出一個 bit：
 
 ```text
 [x <= b]
@@ -161,6 +167,7 @@ name
 input_bit_length
 input_wires
 output_wires
+constant_wires
 wires
 gates
 ```
@@ -183,7 +190,8 @@ demo 會印出類似：
 g0: w8(not_b_0) <- NOT(w1(b_0))
 g1: w9(gt_0) <- AND(w8(not_b_0), w0(x_0))
 ...
-g21: w29(predicate_bit) <- OUTPUT(w28(le))
+g21: w30(mock_dec_out) <- XOR(w28(mock_predicate_ct), w29(mock_hsk_zero))
+g22: w31(predicate_bit) <- OUTPUT(w30(mock_dec_out))
 ```
 
 這個格式的目的，是讓 GC backend 不需要解析字串公式，而是直接遍歷 gate list：

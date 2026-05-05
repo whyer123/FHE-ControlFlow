@@ -8,6 +8,7 @@ GarbledCircuitArtifact MinimalGarbledCircuit::Garble(
     artifact.name = circuit.name;
     artifact.input_wires = circuit.input_wires;
     artifact.output_wires = circuit.output_wires;
+    artifact.constant_wires = circuit.constant_wires;
 
     uint64_t nonce = 0xC0DEC0DE12345678ULL;
     for (const auto& wire : circuit.wires) {
@@ -64,6 +65,15 @@ std::vector<std::string> MinimalGarbledCircuit::EvaluateLabels(
         }
         DecodeWireLabel(artifact, wire, input_it->second);
         wire_labels.emplace(wire, input_it->second);
+    }
+
+    for (const auto& constant : artifact.constant_wires) {
+        const auto labels_it = artifact.all_wire_labels.find(constant.first);
+        if (labels_it == artifact.all_wire_labels.end()) {
+            throw std::invalid_argument("Missing constant wire labels.");
+        }
+        wire_labels.emplace(
+            constant.first, labels_it->second.labels[constant.second ? 1 : 0]);
     }
 
     for (const auto& gate : artifact.gates) {

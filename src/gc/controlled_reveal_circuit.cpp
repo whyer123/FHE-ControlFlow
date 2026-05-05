@@ -71,8 +71,12 @@ BooleanCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_le
         greater = builder.AddGate(BitGateKind::Xor, {generate, propagate}, "gt_" + idx);
     }
 
-    auto less_or_equal = builder.AddGate(BitGateKind::Not, {greater}, "le");
-    auto predicate = builder.AddGate(BitGateKind::Output, {less_or_equal}, "predicate_bit");
+    auto predicate_ct = builder.AddGate(BitGateKind::Not, {greater}, "mock_predicate_ct");
+    auto mock_hsk_zero = builder.AddConstantWire("mock_hsk_zero", false);
+    auto decrypted_predicate = builder.AddGate(
+        BitGateKind::Xor, {predicate_ct, mock_hsk_zero}, "mock_dec_out");
+    auto predicate = builder.AddGate(
+        BitGateKind::Output, {decrypted_predicate}, "predicate_bit");
     builder.AddOutputWire(predicate);
 
     return builder.Build();

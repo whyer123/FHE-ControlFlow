@@ -1,38 +1,6 @@
 #include "controlled_reveal_circuit.h"
-#include <array>
+#include "src/gc/openfhe_lwe_decryption_circuit.h"
 #include <stdexcept>
-
-namespace {
-
-constexpr std::array<bool, 4> kFixedMockHsk = {true, false, true, true};
-constexpr std::array<bool, 4> kFixedMockCipherMask = {true, true, true, true};
-
-bool InnerProductMod2(const std::array<bool, 4>& lhs,
-                      const std::array<bool, 4>& rhs) {
-    bool parity = false;
-    for (size_t i = 0; i < lhs.size(); ++i) {
-        parity = parity != (lhs[i] && rhs[i]);
-    }
-    return parity;
-}
-
-WireId XorReduce(BooleanCircuitBuilder& builder,
-                 const std::vector<WireId>& wires,
-                 const std::string& name_prefix) {
-    if (wires.empty()) {
-        throw std::invalid_argument("Cannot XOR-reduce an empty wire set.");
-    }
-
-    WireId result = wires[0];
-    for (size_t i = 1; i < wires.size(); ++i) {
-        result = builder.AddGate(
-            BitGateKind::Xor, {result, wires[i]},
-            name_prefix + "_" + std::to_string(i));
-    }
-    return result;
-}
-
-} // namespace
 
 LWECiphertext ControlledRevealCircuit::EvalLessOrEqualPredicate(
     const std::vector<LWECiphertext>& x,
@@ -105,28 +73,8 @@ BooleanCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_le
     }
 
     auto predicate_msg = builder.AddGate(BitGateKind::Not, {greater}, "predicate_msg");
-    const bool mock_eval_pad =
-        InnerProductMod2(kFixedMockCipherMask, kFixedMockHsk);
-    auto mock_eval_pad_bit =
-        builder.AddConstantWire("mock_eval_pad_bit", mock_eval_pad);
-    auto predicate_ct_body = builder.AddGate(
-        BitGateKind::Xor, {predicate_msg, mock_eval_pad_bit},
-        "mock_predicate_ct_body");
-
-    std::vector<WireId> masked_hsk_terms;
-    for (size_t i = 0; i < kFixedMockHsk.size(); ++i) {
-        const auto idx = std::to_string(i);
-        auto mask_bit = builder.AddConstantWire(
-            "mock_ct_mask_" + idx, kFixedMockCipherMask[i]);
-        auto hsk_bit = builder.AddConstantWire(
-            "hardcoded_mock_hsk_" + idx, kFixedMockHsk[i]);
-        masked_hsk_terms.push_back(builder.AddGate(
-            BitGateKind::And, {mask_bit, hsk_bit}, "mock_dec_term_" + idx));
-    }
-
-    auto mock_dec_pad = XorReduce(builder, masked_hsk_terms, "mock_dec_pad");
-    auto decrypted_predicate = builder.AddGate(
-        BitGateKind::Xor, {predicate_ct_body, mock_dec_pad}, "mock_dec_out");
+    auto decrypted_predicate =
+        OpenFHELWEDecryptionCircuit::BuildDemoPredicateDecrypt(builder, predicate_msg);
     auto predicate = builder.AddGate(
         BitGateKind::Output, {decrypted_predicate}, "predicate_bit");
     builder.AddOutputWire(predicate);

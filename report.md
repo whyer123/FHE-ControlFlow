@@ -45,7 +45,8 @@ a = 3
 b = 7
 bit_length = 4
 hsk = [1, 0, 1, 1]
-mask = [1, 1, 1, 1]
+LWE mask a = [3, 5, 6, 1]
+q = 16
 ```
 
 `a`、`b` 只是在 demo 內用來產生 encrypted endpoints：
@@ -98,10 +99,10 @@ b' = [b_0', b_1', b_2', b_3']
 
 ```text
 GC artifact name: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
-GC artifact gate count: 31
+GC artifact gate count: 338
 Public input label pairs: 8
-Hardcoded secret/constant labels: 9
-Circuit_g constant wires: 9
+Hardcoded secret/constant labels: 36
+Circuit_g constant wires: 36
 ```
 
 意義：
@@ -112,7 +113,7 @@ Circuit_g constant wires: 9
 g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
 ```
 
-`GC artifact gate count: 31` 表示 `Circuit_g` 目前有 31 個 Boolean gates。
+`GC artifact gate count: 338` 表示 `Circuit_g` 目前在 4-bit demo 參數下有 338 個 Boolean gates。這個數字會隨 bit length、LWE dimension、modulus bit width、decode logic 變動。
 
 `Public input label pairs: 8` 來自 4-bit `x'` 和 4-bit `b'`：
 
@@ -122,15 +123,15 @@ x_0, b_0, x_1, b_1, x_2, b_2, x_3, b_3
 
 每個 public input wire 有 0/1 兩個 labels。依照目前研究假設，evaluator 可以持有這些 labels，因此可以離線查詢不同 ciphertext 對應的 predicate。
 
-`Hardcoded secret/constant labels: 9` 包含：
+`Hardcoded secret/constant labels: 36` 包含：
 
 ```text
-mock_eval_pad_bit
-mock_ct_mask_0..3
-hardcoded_mock_hsk_0..3
+hardcoded_openfhe_lwe_hsk_0..3
+openfhe_lwe_a_i_bit_j
+adder constants
 ```
 
-這些不是 public 0/1 label pairs，而是 garbler 寫進 GC artifact 的 selected labels。尤其 `hardcoded_mock_hsk_0..3` 代表固定 hsk：
+這些不是 public 0/1 label pairs，而是 garbler 寫進 GC artifact 的 selected labels。尤其 `hardcoded_openfhe_lwe_hsk_0..3` 代表固定 hsk：
 
 ```text
 hsk = [1, 0, 1, 1]
@@ -138,7 +139,7 @@ hsk = [1, 0, 1, 1]
 
 evaluator 可以使用這些 labels evaluate GC，但不會直接知道它們對應的 bit 值。
 
-`Circuit_g constant wires: 9` 表示 Boolean circuit 內有 9 條 constant wires。
+`Circuit_g constant wires` 表示 Boolean circuit 內有多少條 constant wires。現在 decryption 子電路包含固定 hsk、固定 LWE mask coefficients、加法器 carry constants，因此數量會比早期 mock 版本多。
 
 ### 4. Circuit_g gate list
 
@@ -147,7 +148,7 @@ evaluator 可以使用這些 labels evaluate GC，但不會直接知道它們對
 ```text
 g0: w8(not_b_0) <- NOT(w1(b_0))
 ...
-g30: w47(predicate_bit) <- OUTPUT(w46(mock_dec_out))
+g337: w381(predicate_bit) <- OUTPUT(w368(openfhe_lwe_phase_sum_2))
 ```
 
 意義：
@@ -169,13 +170,12 @@ input wire names
 predicate_msg = [x <= b]
 ```
 
-後半段是 mock decryption：
+後半段是 OpenFHE LWE-like decryption arithmetic：
 
 ```text
-mock_predicate_ct_body = predicate_msg XOR <mask,hsk>
-mock_dec_pad = <mask,hsk>
-mock_dec_out = mock_predicate_ct_body XOR mock_dec_pad
-predicate_bit = mock_dec_out
+b = encoded_msg + <a,hsk> mod q
+phase = b - <a,hsk> mod q
+predicate_bit = phase[2]
 ```
 
 因此 circuit 形狀已經是：

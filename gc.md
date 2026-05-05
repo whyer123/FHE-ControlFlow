@@ -34,13 +34,22 @@ Dec(hsk, Eval([x <= b], x', b'))
 
 ## 目前的實作邊界
 
-目前 repo 已經做到三件事：
+目前 repo 已經做到四件事：
 
 1. 用 FHE bit-level gates 計算 encrypted predicate。
 2. 只解密 predicate bit。
 3. 把 predicate circuit 描述成 stable wire/gate 格式，準備交給 GC backend。
+4. 把 OpenFHE LWE decryption 的核心 phase arithmetic 展開成 Boolean circuit。
 
-目前還沒有把真實 OpenFHE 的 `Dec(hsk, ciphertext)` 完整展開成 Boolean circuit。也就是說，現在的 `ControlledRevealCircuit` 是 controlled reveal prototype：它把 `Eval(f)` 和「只解 predicate」放在同一個介面裡，先固定安全邊界與資料流。
+目前的 decryption circuit 還不是完整 production OpenFHE decrypt。它已經展開：
+
+```text
+phase = b - <a,hsk> mod q
+```
+
+以及 demo 用的 bit decode；但還沒有完整對齊 OpenFHE 的 rounding/noise handling，也還沒有把真實 OpenFHE ciphertext serialization 接進 circuit input。
+
+也就是說，現在的 `ControlledRevealCircuit` 已經固定 controlled reveal 的安全邊界與資料流，並開始把 `Dec(hsk, predicate_ct)` 的 arithmetic 放進 `Circuit_g`。
 
 ## Step 1: FHE.Eval(f, c_x, c_b)
 
@@ -87,47 +96,59 @@ predicate_msg = NOT(greater) = [x <= b]
 AND, XOR, NOT
 ```
 
-## Step 2: 只解密 predicate
+## Step 2: OpenFHE LWE decryption arithmetic
 
-程式位置：
+runtime prototype 的程式位置：
 
 ```text
 ControlledRevealCircuit::RevealPredicateOnly(predicate_ct)
 ```
 
-目前 mock demo 使用固定的一組 toy secret key：
+Boolean circuit 版本目前使用固定的一組 OpenFHE LWE-like secret key：
 
 ```text
 hsk = [1, 0, 1, 1]
 ```
 
-也使用固定的 mock ciphertext mask：
+也使用固定的 LWE ciphertext mask coefficients：
 
 ```text
-mask = [1, 1, 1, 1]
+a = [3, 5, 6, 1]
 ```
 
-mock ciphertext body 先被表示成：
+目前 demo modulus 固定為：
 
 ```text
-mock_eval_pad = <mask, hsk> mod 2
-mock_predicate_ct_body = predicate_msg XOR mock_eval_pad
+q = 16
+scale = q / 4 = 4
+```
+
+predicate message 先被 encode 到 LWE phase：
+
+```text
+encoded_msg = predicate_msg * scale
+```
+
+接著產生 demo ciphertext body：
+
+```text
+b = encoded_msg + <a, hsk> mod q
 ```
 
 decryption 子電路會重新計算：
 
 ```text
-mock_dec_term_i = mask_i AND hsk_i
-mock_dec_pad = XOR_i(mock_dec_term_i)
-mock_dec_out = mock_predicate_ct_body XOR mock_dec_pad
+pad = <a, hsk> mod q
+phase = b - pad mod q
+predicate_bit = phase[2]
 ```
 
-因為 `mock_dec_pad = mock_eval_pad`，所以 `mock_dec_out` 會回到原本的 predicate bit。
+因為 `q=16` 且 `scale=4`，在 noiseless demo 裡 `phase[2]` 對應 predicate bit。
 
-這仍然不是 OpenFHE 真實 LWE decryption。它的目的，是先讓 `Circuit_g` 的形狀明確包含：
+這仍然不是完整 OpenFHE production decryption，因為 OpenFHE 真實 decrypt 還有更完整的 modulus/rounding/noise 處理。它的目的，是先把 LWE decryption arithmetic 的核心形狀展成 Boolean circuit：
 
 ```text
-Eval(f) -> Dec
+Eval(f) -> LWE body b -> b - <a,hsk> mod q -> decode bit
 ```
 
 而且 `hsk` bits 是 hardcoded secret constant wires，會被 garble 進 GC artifact。
@@ -176,6 +197,8 @@ EncryptedPredicateEvaluator::Evaluate(x', b')
 
 這讓後面可以把目前的 controlled reveal prototype 換成真正的 garbled backend。
 
+注意：目前 demo loop 每一輪仍透過這個 C++ interface 跑 controlled reveal；同時，`DescribeLessOrEqualCircuit()` 已經輸出包含 LWE decryption arithmetic 的 `Circuit_g`，並用 minimal GC backend 驗證 label flow。下一步才會把 loop 每一輪也改成直接餵 garbled artifact。
+
 ## Step 4: 把 Circuit_g 變成描述
 
 程式位置：
@@ -216,10 +239,10 @@ g0: w8(not_b_0) <- NOT(w1(b_0))
 g1: w9(gt_0) <- AND(w8(not_b_0), w0(x_0))
 ...
 g20: w28(predicate_msg) <- NOT(w27(gt_3))
-g21: w30(mock_predicate_ct_body) <- XOR(w28(predicate_msg), w29(mock_eval_pad_bit))
 ...
-g29: w41(mock_dec_out) <- XOR(w30(mock_predicate_ct_body), w40(mock_dec_pad_3))
-g30: w42(predicate_bit) <- OUTPUT(w41(mock_dec_out))
+openfhe_lwe_ct_body_*     // b = encoded_msg + <a,hsk> mod q
+openfhe_lwe_phase_*       // phase = b - <a,hsk> mod q
+predicate_bit             // phase[2]
 ```
 
 這個格式的目的，是讓 GC backend 不需要解析字串公式，而是直接遍歷 gate list：
@@ -343,10 +366,13 @@ hsk
 
 ## 下一步
 
-下一個真正重要的研究步驟，是把：
+接下來的重要步驟不是再做 mock decrypt，而是把 demo 從「產生並驗證 GC artifact」推進到「loop 每一輪都直接 evaluate garbled artifact」。
+
+另外還需要對齊 production OpenFHE：
 
 ```text
-FHE.Dec(hsk, predicate_ct)
+real LWE ciphertext fields -> circuit inputs
+OpenFHE rounding/noise decode -> Boolean circuit
+client-side garble -> serialized GC_f
+evaluator-side offline loop -> GC_f(x', b')
 ```
-
-也展開成 Boolean circuit，讓 `Circuit_g` 不只描述 comparator，也包含 secret-key-dependent decryption logic。到那一步，Client 才能真正把 `hsk` 包進 garbled artifact，而不是在 C++ prototype 裡直接呼叫 decrypt。

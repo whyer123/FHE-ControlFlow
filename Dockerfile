@@ -30,6 +30,7 @@ RUN g++ -std=c++17 -DMOCK_OPENFHE -I. \
     src/gc/boolean_circuit.cpp \
     src/gc/controlled_reveal_circuit.cpp \
     src/gc/minimal_garbled_circuit.cpp \
+    src/gc/openfhe_lwe_decryption_circuit.cpp \
     src/algorithms/fhe_arithmetic.cpp \
     src/algorithms/fhe_cmp.cpp \
     examples/demo_loop.cpp \

@@ -24,6 +24,8 @@ See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design a
 
 See `report.md` for a Chinese explanation of the demo loop output.
 
+See `demo_keys/fixed_demo_material.md` for the fixed demo hsk/GC material and the current hpk status.
+
 ## Getting Started
 
 ### Using Docker (自動執行)

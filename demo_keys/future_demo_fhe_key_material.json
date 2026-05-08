@@ -1,6 +1,7 @@
 {
   "version": 1,
   "purpose": "Fixed demo key material for the controlled-reveal GC prototype.",
+  "human_readable_summary": "demo_keys/fixed_demo_material.md",
   "status": "prototype-demo-material-not-production-openfhe-serialization",
   "current_fhe_path": "OpenFHE BinFHE/LWE bit ciphertexts",
   "hpk": {

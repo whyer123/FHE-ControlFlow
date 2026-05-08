@@ -22,16 +22,57 @@ Evaluator 不拿：
 
 ## Fixed hpk / hsk status
 
-目前 prototype 使用的是 OpenFHE BinFHE/LWE bit-ciphertext 路線。這條路線在目前 code 裡是用 LWE private key encrypt bit，不是 public-key FHE encryption API，所以現在沒有可展示、可序列化的 `hpk`。
-
-因此目前固定 key material 是：
+目前已產生一組真正 OpenFHE BinFHE/LWE public-key demo key pair：
 
 ```text
-hpk = none in current BinFHE prototype
+demo_keys/openfhe_binfhe_demo_keypair/hpk_lwe_public_key.json
+demo_keys/openfhe_binfhe_demo_keypair/hpk_lwe_public_key.bin
+demo_keys/openfhe_binfhe_demo_keypair/hsk_lwe_secret_key.json
+demo_keys/openfhe_binfhe_demo_keypair/hsk_lwe_secret_key.bin
+```
+
+產生方式是：
+
+```text
+BinFHEContext.GenerateBinFHEContext(TOY)
+hsk <- KeyGen()
+BTKeyGen(hsk, PUB_ENCRYPT)
+hpk <- GetPublicKey()
+```
+
+並已做過自測：
+
+```text
+Dec_hsk(Enc_hpk(0)) = 0
+Dec_hsk(Enc_hpk(1)) = 1
+EvalBinGate(AND, Enc_hpk(1), Enc_hpk(1)) = 1
+```
+
+Evaluator 若要在 BinFHE ciphertext 上做 gate evaluation，除了 ciphertext 之外也需要 public evaluation material：
+
+```text
+demo_keys/openfhe_binfhe_demo_keypair/binfhe_context_params.bin
+demo_keys/openfhe_binfhe_demo_keypair/eval_refresh_key.bin
+demo_keys/openfhe_binfhe_demo_keypair/eval_switch_key.bin
+```
+
+不過目前固定 GC circuit 還沒有改成使用這組真 OpenFHE `hsk`。目前 `artifacts/circuit_g_demo.txt` 裡的 decryption circuit 仍是 toy LWE-like hsk：
+
+```text
 hsk = [1, 0, 1, 1]
 ```
 
-這不是說最終設計不能有 `hpk`。如果 production demo 必須真的展示 `hpk/hsk` pair，就要把 encryption path 切到 OpenFHE public-key scheme，或確認並接上 BinFHE 的 public-key encryption support。現在這一步先不做，因為 evaluator 目標本來就是不需要 `hpk`。
+也就是說，現在有兩層 material：
+
+```text
+1. real OpenFHE BinFHE hpk/hsk files:
+   已生成，可展示，可做 public-key encrypt/decrypt 自測。
+
+2. current GC demo hsk:
+   仍是 4-bit toy hsk，用來讓 Circuit_g 小到能清楚展示。
+```
+
+下一步若要完全對齊，就要把 real OpenFHE `hsk` 和 ciphertext layout 展開進 `Circuit_g`，再重新 garble。
 
 ## Fixed LWE-like decryption parameters
 
@@ -131,4 +172,12 @@ real OpenFHE ciphertext serialization
 real OpenFHE public-key hpk/hsk material
 ```
 
-所以目前可展示的是固定 `hsk + fixed Circuit_g + EMP GC runtime`，不是完整 production OpenFHE key serialization。
+所以目前可展示的是：
+
+```text
+real OpenFHE BinFHE hpk/hsk files
+fixed toy-hsk Circuit_g
+EMP GC runtime
+```
+
+還不是「real OpenFHE hsk 已經編進 Circuit_g」的版本。

@@ -2,17 +2,27 @@
   "version": 1,
   "purpose": "Fixed demo key material for the controlled-reveal GC prototype.",
   "human_readable_summary": "demo_keys/fixed_demo_material.md",
-  "status": "prototype-demo-material-not-production-openfhe-serialization",
+  "status": "prototype-demo-material-with-generated-openfhe-binfhe-keypair",
   "current_fhe_path": "OpenFHE BinFHE/LWE bit ciphertexts",
   "hpk": {
-    "present_in_current_binfhe_path": false,
-    "reason": "The current BinFHE prototype encrypts bits with an LWE private key. Evaluator-side homomorphic gates use evaluation/context material and ciphertexts, not a public encryption key.",
-    "design_decision": "Evaluator should not receive hpk. Client supplies encrypted constants such as one_prime = Enc(1)."
+    "present": true,
+    "json": "demo_keys/openfhe_binfhe_demo_keypair/hpk_lwe_public_key.json",
+    "binary": "demo_keys/openfhe_binfhe_demo_keypair/hpk_lwe_public_key.bin",
+    "generation": "BinFHEContext + KeyGen + BTKeyGen(hsk, PUB_ENCRYPT) + GetPublicKey",
+    "runtime_decision": "Evaluator still should not receive hpk in the fixed-GC loop; client supplies encrypted constants such as one_prime = Enc(1)."
   },
   "hsk": {
+    "real_openfhe_json": "demo_keys/openfhe_binfhe_demo_keypair/hsk_lwe_secret_key.json",
+    "real_openfhe_binary": "demo_keys/openfhe_binfhe_demo_keypair/hsk_lwe_secret_key.bin",
     "fixed_demo_lwe_secret_bits": [1, 0, 1, 1],
     "used_by": "src/gc/openfhe_lwe_decryption_circuit.cpp",
-    "embedded_into_gc_as": "hardcoded_openfhe_lwe_hsk_0..3 selected constant labels"
+    "embedded_into_current_gc_as": "hardcoded_openfhe_lwe_hsk_0..3 selected constant labels",
+    "note": "The generated real OpenFHE hsk is not yet expanded into Circuit_g; current GC still uses the toy 4-bit hsk."
+  },
+  "evaluation_material": {
+    "context_params": "demo_keys/openfhe_binfhe_demo_keypair/binfhe_context_params.bin",
+    "refresh_key": "demo_keys/openfhe_binfhe_demo_keypair/eval_refresh_key.bin",
+    "switch_key": "demo_keys/openfhe_binfhe_demo_keypair/eval_switch_key.bin"
   },
   "encrypted_constants_for_future_demo": {
     "one_prime": {
@@ -23,5 +33,5 @@
       "usage": "x_prime <- FHE.Add(x_prime, one_prime)"
     }
   },
-  "next_step_for_real_key_files": "Add OpenFHE key/ciphertext serialization after choosing whether the production path remains BinFHE symmetric-key FHE or switches to a public-key OpenFHE scheme."
+  "next_step_for_real_key_files": "Expand the generated real OpenFHE hsk and ciphertext layout into Circuit_g, replacing the current toy 4-bit hsk circuit."
 }

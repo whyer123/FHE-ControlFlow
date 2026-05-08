@@ -18,6 +18,9 @@ include_directories(
 )
 
 link_directories(${OpenFHE_LIBDIR})
+if(APPLE AND EXISTS "/opt/homebrew/opt/libomp/lib")
+    link_directories("/opt/homebrew/opt/libomp/lib")
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenFHE_CXX_FLAGS}")
 
@@ -50,6 +53,14 @@ add_executable(demo_loop
 )
 
 target_link_libraries(demo_loop 
+    ${OpenFHE_LIBRARIES}
+)
+
+add_executable(generate_openfhe_keypair
+    tools/generate_openfhe_keypair.cpp
+)
+
+target_link_libraries(generate_openfhe_keypair
     ${OpenFHE_LIBRARIES}
 )
 

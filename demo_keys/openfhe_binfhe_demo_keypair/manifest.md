@@ -19,4 +19,8 @@ This directory contains one generated OpenFHE BinFHE/LWE key pair for the fixed 
 - Public-key encryption self-test: `Enc_hpk(0/1)` then `Dec_hsk`
 - Gate self-test: `EvalBinGate(AND, Enc_hpk(1), Enc_hpk(1)) = 1`
 
+## Size note
+
+The LWE public key is large because it contains many LWE public-key samples. The JSON file expands vectors into decimal text and is much larger than the binary form; runtime code should prefer `.bin` files. The switching evaluation key is also large and is separate from `hpk`.
+
 These files are demo material only and are not production security parameters.

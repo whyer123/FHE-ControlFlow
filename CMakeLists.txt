@@ -64,6 +64,14 @@ target_link_libraries(generate_openfhe_keypair
     ${OpenFHE_LIBRARIES}
 )
 
+add_executable(prepare_openfhe_constants
+    tools/prepare_openfhe_constants.cpp
+)
+
+target_link_libraries(prepare_openfhe_constants
+    ${OpenFHE_LIBRARIES}
+)
+
 if(USE_EMP_GC)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
         target_compile_options(demo_loop PRIVATE -march=armv8-a+simd+crypto+crc)

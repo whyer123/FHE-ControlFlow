@@ -74,6 +74,36 @@ hsk = [1, 0, 1, 1]
 
 下一步若要完全對齊，就要把 real OpenFHE `hsk` 和 ciphertext layout 展開進 `Circuit_g`，再重新 garble。
 
+## Prepared encrypted constants
+
+已經用上面那組 `hpk` 先準備好：
+
+```text
+one' = Enc_hpk(1)
+```
+
+檔案在：
+
+```text
+demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.json
+demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.bin
+demo_keys/openfhe_binfhe_demo_keypair/encrypted_constants_manifest.md
+```
+
+已用 `hsk` 驗證：
+
+```text
+Dec_hsk(one') = 1
+```
+
+因此 evaluator loop 可以直接拿 `one'` 做：
+
+```text
+x' <- FHE.Add(x', one')
+```
+
+不需要拿 `hpk` 自己加密常數。
+
 ## Fixed LWE-like decryption parameters
 
 目前要編進 GC 的 toy LWE-like decryption arithmetic 使用：
@@ -169,13 +199,14 @@ while true:
 ```text
 serialized fixed GC artifact
 real OpenFHE ciphertext serialization
-real OpenFHE public-key hpk/hsk material
+real OpenFHE hsk expanded into Circuit_g
 ```
 
 所以目前可展示的是：
 
 ```text
 real OpenFHE BinFHE hpk/hsk files
+prepared one_prime = Enc_hpk(1)
 fixed toy-hsk Circuit_g
 EMP GC runtime
 ```

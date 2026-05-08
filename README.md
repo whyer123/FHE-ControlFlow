@@ -18,6 +18,8 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 `Circuit_g` is exported as a garbling-ready Boolean circuit with stable wire ids, gate ids, input wires, output wires, and a demo OpenFHE LWE-like decryption arithmetic subcircuit for `b - <a,hsk> mod q`.
 
+In `MOCK_OPENFHE` mode, the Docker `gc_mock` target now uses an EMP-toolkit half-gates garbled-circuit artifact on every loop iteration. The in-repo minimal GC backend remains available as a fallback when `USE_EMP_GC` is not set.
+
 See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
 
 See `report.md` for a Chinese explanation of the demo loop output.
@@ -35,6 +37,12 @@ docker-compose up --build
 
 ```bash
 docker-compose run --rm gc_mock
+```
+
+`gc_mock` installs EMP-toolkit in the image and runs `build_mock.sh` with `USE_EMP_GC=1`, so the predicate path should print:
+
+```text
+Evaluator predicate path: EMP half-gates GC artifact
 ```
 
 跑完整 OpenFHE demo：

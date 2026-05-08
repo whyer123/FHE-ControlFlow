@@ -13,28 +13,30 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     openssl \
     pkg-config \
+    python3 \
+    sudo \
+    wget \
     xxd \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Fast development target for the in-repo GC backend and mock FHE.
+# Fast development target for EMP half-gates GC backend and mock FHE.
 FROM base AS gc-mock
 
+WORKDIR /opt/emp-toolkit
+
+RUN wget https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/scripts/install.py \
+    && python3 install.py --deps --tool \
+    && ldconfig
+
+ENV USE_EMP_GC=1
+
+WORKDIR /app
 COPY . .
 
-RUN g++ -std=c++17 -DMOCK_OPENFHE -I. \
-    src/fhe/fhe_context.cpp \
-    src/gates/fhe_gates.cpp \
-    src/gc/boolean_circuit.cpp \
-    src/gc/controlled_reveal_circuit.cpp \
-    src/gc/minimal_garbled_circuit.cpp \
-    src/gc/openfhe_lwe_decryption_circuit.cpp \
-    src/algorithms/fhe_arithmetic.cpp \
-    src/algorithms/fhe_cmp.cpp \
-    examples/demo_loop.cpp \
-    -o demo_mock
+RUN ./build_mock.sh
 
 CMD ["./demo_mock"]
 

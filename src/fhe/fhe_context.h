@@ -6,6 +6,8 @@
 #include "binfhecontext.h"
 #endif
 
+#include <vector>
+
 using namespace lbcrypto;
 
 class FHEContextWrapper {

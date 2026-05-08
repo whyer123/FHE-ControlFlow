@@ -84,7 +84,7 @@ b' = [b_0', b_1', ...]
 greater = [x > b]'
 ```
 
-接著產生 mock predicate message：
+接著產生 predicate message：
 
 ```text
 predicate_msg = NOT(greater) = [x <= b]
@@ -195,9 +195,17 @@ g(c_x, c_b) = Dec(hsk, Eval([x <= b], c_x, c_b))
 EncryptedPredicateEvaluator::Evaluate(x', b')
 ```
 
-這讓後面可以把目前的 controlled reveal prototype 換成真正的 garbled backend。
+目前 demo 在 `MOCK_OPENFHE` 模式下已經把這個介面接到 `GarbledPredicateEvaluator`。也就是說，loop 每一輪的 predicate 判斷會走：
 
-注意：目前 demo loop 每一輪仍透過這個 C++ interface 跑 controlled reveal；同時，`DescribeLessOrEqualCircuit()` 已經輸出包含 LWE decryption arithmetic 的 `Circuit_g`，並用 minimal GC backend 驗證 label flow。下一步才會把 loop 每一輪也改成直接餵 garbled artifact。
+```text
+x', b' mock ciphertext bits
+-> GC input labels
+-> garbled tables
+-> output label
+-> [x <= b]
+```
+
+完整 OpenFHE 模式目前仍保留 direct controlled reveal fallback，因為真實 OpenFHE ciphertext serialization 還沒有接到 GC input。
 
 ## Step 4: 把 Circuit_g 變成描述
 
@@ -252,22 +260,25 @@ for gate in circuit.gates:
     evaluate gate.inputs -> gate.output
 ```
 
-## Step 5: Minimal GC backend
+## Step 5: EMP half-gates GC backend
 
 程式位置：
 
 ```text
+src/gc/emp_garbled_circuit.h
+src/gc/emp_garbled_circuit.cpp
 src/gc/minimal_garbled_circuit.h
 src/gc/minimal_garbled_circuit.cpp
 ```
 
-這個 backend 是研究用的最小 GC artifact，不是最終密碼學安全版本。
+目前 Docker `gc_mock` target 使用 EMP-toolkit 的 half-gates backend。`minimal_garbled_circuit.*` 保留成不裝 EMP 時的本機 fallback，不是主要展示路徑。
 
-它做三件事：
+EMP backend 做三件事：
 
-1. 對每條 wire 建立兩個 labels。
-2. 對每個 gate 產生 garbled table。
-3. 在 mock mode 下，把 input bits 編成 labels，沿著 garbled tables evaluate，最後 decode output label。
+1. 對 public input wires 建立 0/1 label pair。
+2. 對 hardcoded `hsk` 和其他 constant wires 只放入 selected label。
+3. 用 `emp::HalfGateGen` 產生 AND gate 的 half-gates transcript，XOR/NOT 走 free-XOR/free-NOT label flow。
+4. 在 mock mode 下，`GarbledPredicateEvaluator` 把每一輪的 input bits 選成 labels，再用 `emp::HalfGateEva` 沿著同一份 transcript evaluate，最後 decode output label。
 
 目前依照我們的新假設：
 
@@ -288,6 +299,8 @@ hsk
 Dec(hsk, x')
 Dec(hsk, b')
 ```
+
+注意：為了符合「evaluator 可以離線重複查 predicate」這個 demo 假設，EMP artifact 目前也保存 free-XOR 需要的 `delta` 和 output decode material。這不是標準一次性 GC 的 label 發放模型；它是我們目前用來隱藏 `hsk`、但允許重複查 `g(c_x,c_b)` 的 controlled-reveal 原型模型。
 
 ## Demo 展示流程
 
@@ -318,9 +331,10 @@ bit_length = 4
 ```
 
 5. 產生 `Circuit_g` 描述。
-6. 產生 minimal garbled artifact。
-7. 在 mock mode 下把 `a'`、`b'` 的 bit 值編成 input labels，驗證 minimal GC 對 `[a <= b]` 的輸出。
-8. 執行 evaluator loop：
+6. 在 Docker `gc_mock` 中產生 EMP half-gates garbled artifact；未設定 `USE_EMP_GC` 時才使用 minimal fallback。
+7. 建立 `GarbledPredicateEvaluator`，把 `Circuit_g` artifact 包成 `GC_f(x', b') -> bool`。
+8. 在 mock mode 下把 `a'`、`b'` 的 bit 值編成 input labels，驗證 EMP GC 對 `[a <= b]` 的輸出。
+9. 執行 evaluator loop，而且每一輪 predicate 都重新 evaluate garbled artifact：
 
 ```text
 x' = a'
@@ -364,11 +378,20 @@ hsk
 
 這表示 Evaluator 學到 runtime 和 predicate sequence，但沒有看到 `x` 的明文值。這符合目前接受的 leakage model。
 
+## 目前仍是 mock 的部分
+
+目前仍是 mock 或 demo 化的部分：
+
+1. `MOCK_OPENFHE` 的 ciphertext 只有一個 `.bit`，所以 GC input label encoding 目前是從 mock bit 直接取得。
+2. LWE decryption circuit 使用固定 demo key、固定 mask、固定 `q=16`，不是從真實 OpenFHE ciphertext 解析出來。
+3. decode 目前是 noiseless `phase[2]`，還沒有完整 OpenFHE rounding/noise handling。
+4. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
+5. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
+6. artifact 還沒有 serialization，所以 client setup 和 evaluator loop 還在同一個 executable 裡。
+
 ## 下一步
 
-接下來的重要步驟不是再做 mock decrypt，而是把 demo 從「產生並驗證 GC artifact」推進到「loop 每一輪都直接 evaluate garbled artifact」。
-
-另外還需要對齊 production OpenFHE：
+接下來要對齊 production OpenFHE 與離線流程：
 
 ```text
 real LWE ciphertext fields -> circuit inputs

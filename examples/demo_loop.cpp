@@ -3,9 +3,13 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
+#ifdef USE_EMP_GC
+#include "src/gc/emp_garbled_circuit.h"
+#else
 #include "src/gc/minimal_garbled_circuit.h"
+#endif
+#include "src/gc/garbled_predicate_evaluator.h"
 #include "src/gc/predicate_gc.h"
-#include <unordered_map>
 
 int main() {
     std::cout << "--- Controlled Reveal Predicate Prototype ---" << std::endl;
@@ -19,8 +23,7 @@ int main() {
     FHEArithmetic arithmetic(gates);
     
     // 3. Build Algorithm 0: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b)).
-    ControlledRevealCircuit gc_f(fhe_ctx, gates);
-    EncryptedPredicateEvaluator& predicate_gc = gc_f;
+    ControlledRevealCircuit circuit_builder(fhe_ctx, gates);
     
     // Encrypted endpoints for the loop: start at a' and stop after b'.
     int64_t start_value = 3;
@@ -31,10 +34,27 @@ int main() {
     auto enc_a = fhe_ctx.EncryptInteger(start_value, bit_length);
     auto enc_b = fhe_ctx.EncryptInteger(target_value, bit_length);
 
-    auto circuit = gc_f.DescribeLessOrEqualCircuit(bit_length);
-    auto artifact = predicate_gc.ArtifactInfo(bit_length);
+    auto circuit = circuit_builder.DescribeLessOrEqualCircuit(bit_length);
+#ifdef USE_EMP_GC
+    EmpGarbledCircuit garbler;
+    auto garbled_artifact = garbler.Garble(circuit);
+#else
     MinimalGarbledCircuit garbler;
     auto garbled_artifact = garbler.Garble(circuit);
+#endif
+    GarbledPredicateEvaluator garbled_predicate(circuit, garbled_artifact);
+#ifdef MOCK_OPENFHE
+    EncryptedPredicateEvaluator& predicate_gc = garbled_predicate;
+#ifdef USE_EMP_GC
+    std::cout << "Evaluator predicate path: EMP half-gates GC artifact" << std::endl;
+#else
+    std::cout << "Evaluator predicate path: Minimal GC artifact" << std::endl;
+#endif
+#else
+    EncryptedPredicateEvaluator& predicate_gc = circuit_builder;
+    std::cout << "Evaluator predicate path: direct OpenFHE controlled reveal fallback" << std::endl;
+#endif
+    auto artifact = predicate_gc.ArtifactInfo(bit_length);
     std::cout << "GC artifact name: " << artifact.name << std::endl;
     std::cout << "GC artifact gate count: " << artifact.gate_count << std::endl;
     std::cout << "Public input label pairs: "
@@ -43,6 +63,12 @@ int main() {
               << garbled_artifact.constant_labels.size() << std::endl;
     std::cout << "Circuit_g constant wires: "
               << circuit.constant_wires.size() << std::endl;
+#ifdef USE_EMP_GC
+    std::cout << "EMP half-gates AND count: "
+              << garbled_artifact.and_gate_count << std::endl;
+    std::cout << "EMP transcript blocks: "
+              << garbled_artifact.transcript.size() << std::endl;
+#endif
     std::cout << "Circuit_g gates:" << std::endl;
     for (const auto& gate : circuit.gates) {
         std::cout << "  g" << gate.id << ": w" << gate.output
@@ -59,18 +85,15 @@ int main() {
     }
 
 #ifdef MOCK_OPENFHE
-    std::unordered_map<WireId, bool> demo_gc_inputs;
-    for (size_t i = 0; i < bit_length; ++i) {
-        demo_gc_inputs[circuit.input_wires[2 * i]] = enc_a[i].bit;
-        demo_gc_inputs[circuit.input_wires[2 * i + 1]] = enc_b[i].bit;
-    }
-    auto input_labels = garbler.EncodeInputs(garbled_artifact, demo_gc_inputs);
-    auto output_labels = garbler.EvaluateLabels(garbled_artifact, input_labels);
-    auto garbled_outputs = garbler.DecodeOutputs(garbled_artifact, output_labels);
-    std::cout << "Minimal GC evaluated [a <= b] = "
-              << (garbled_outputs.front() ? 1 : 0) << std::endl;
+#ifdef USE_EMP_GC
+    std::cout << "EMP GC evaluated [a <= b] = "
+              << (predicate_gc.Evaluate(enc_a, enc_b) ? 1 : 0) << std::endl;
 #else
-    std::cout << "Minimal GC direct evaluation is shown only in MOCK_OPENFHE mode."
+    std::cout << "Minimal GC evaluated [a <= b] = "
+              << (predicate_gc.Evaluate(enc_a, enc_b) ? 1 : 0) << std::endl;
+#endif
+#else
+    std::cout << "GC direct evaluation is shown only in MOCK_OPENFHE mode."
               << std::endl;
 #endif
     

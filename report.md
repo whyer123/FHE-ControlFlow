@@ -98,14 +98,19 @@ b' = [b_0', b_1', b_2', b_3']
 輸出：
 
 ```text
+Evaluator predicate path: EMP half-gates GC artifact
 GC artifact name: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
 GC artifact gate count: 338
 Public input label pairs: 8
 Hardcoded secret/constant labels: 36
 Circuit_g constant wires: 36
+EMP half-gates AND count: 159
+EMP transcript blocks: 321
 ```
 
 意義：
+
+`Evaluator predicate path: EMP half-gates GC artifact` 表示 mock demo 的 loop predicate 已經走 EMP-toolkit half-gates backend，不是直接呼叫 C++ controlled reveal decrypt。
 
 `GC artifact name` 表示目前被包進 GC 的函數：
 
@@ -140,6 +145,8 @@ hsk = [1, 0, 1, 1]
 evaluator 可以使用這些 labels evaluate GC，但不會直接知道它們對應的 bit 值。
 
 `Circuit_g constant wires` 表示 Boolean circuit 內有多少條 constant wires。現在 decryption 子電路包含固定 hsk、固定 LWE mask coefficients、加法器 carry constants，因此數量會比早期 mock 版本多。
+
+`EMP half-gates AND count` 表示 EMP backend 實際 garble 的 AND gates 數量。`EMP transcript blocks` 是 half-gates garbling 後 evaluator 需要讀取的 transcript block 數量。
 
 ### 4. Circuit_g gate list
 
@@ -184,17 +191,17 @@ predicate_bit = phase[2]
 Eval(f) -> Dec -> output predicate
 ```
 
-### 5. Minimal GC evaluation
+### 5. EMP GC evaluation
 
 輸出：
 
 ```text
-Minimal GC evaluated [a <= b] = 1
+EMP GC evaluated [a <= b] = 1
 ```
 
 意義：
 
-這一步在 `MOCK_OPENFHE` 模式下，把 `a'`、`b'` 的 mock ciphertext bits 編成 input labels，然後用 garbled tables evaluate `Circuit_g`。
+這一步在 `MOCK_OPENFHE` 模式下，把 `a'`、`b'` 的 mock ciphertext bits 編成 input labels，然後用 EMP `HalfGateEva` evaluate `Circuit_g`。
 
 它驗證：
 
@@ -209,7 +216,7 @@ b = 7
 這一步的重點是確認 GC artifact 的 label flow 可以跑通：
 
 ```text
-input bits -> input labels -> garbled tables -> output label -> predicate bit
+input bits -> input labels -> EMP half-gates transcript -> output label -> predicate bit
 ```
 
 ### 6. Encrypted evaluator loop
@@ -240,6 +247,14 @@ b' = Enc(7)
 ```text
 [x <= b]
 ```
+
+在 `MOCK_OPENFHE` 模式下，每一輪的 `GC_f(x', b')` 都會重新做：
+
+```text
+current x', b' bits -> input labels -> garbled tables -> output decode
+```
+
+也就是 loop 的停止條件已經走 EMP half-gates GC artifact。
 
 實際 predicate sequence 是：
 
@@ -304,11 +319,13 @@ hsk = [1, 0, 1, 1]
 
 ## 目前仍是 mock 的部分
 
-目前 mock decryption 是 toy LWE-like：
+目前仍是 mock 或 demo 化的部分：
 
-```text
-ct_body = msg XOR <mask,hsk>
-Dec(hsk, ct) = ct_body XOR <mask,hsk>
-```
+- `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
+- LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
+- Decode 目前是 noiseless `phase[2]`，還沒有完整 OpenFHE rounding/noise handling。
+- EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。
+- in-repo Minimal GC backend 只保留為無 EMP 環境的 fallback，不是主要展示路徑。
+- Client setup 和 evaluator loop 還在同一個 executable，`GC_f` artifact 尚未寫檔或跨程序載入。
 
-這不是 OpenFHE 真實 LWE decryption。下一步若要更接近真實系統，需要把 OpenFHE LWE ciphertext 的 decryption arithmetic 展開成 Boolean circuit，並定義 ciphertext serialization。
+所以目前 demo 證明的是 offline GC control-flow 的資料流，不是完整 OpenFHE production integration。

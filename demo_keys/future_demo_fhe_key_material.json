@@ -30,7 +30,9 @@
       "bit_length": 4,
       "owner": "client setup",
       "consumer": "evaluator loop",
-      "usage": "x_prime <- FHE.Add(x_prime, one_prime)"
+      "usage": "x_prime <- FHE.Add(x_prime, one_prime)",
+      "real_openfhe_json": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.json",
+      "real_openfhe_binary": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.bin"
     }
   },
   "next_step_for_real_key_files": "Expand the generated real OpenFHE hsk and ciphertext layout into Circuit_g, replacing the current toy 4-bit hsk circuit."

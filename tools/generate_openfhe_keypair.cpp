@@ -111,6 +111,11 @@ int main(int argc, char** argv) {
         "- Parameter set: `TOY`\n"
         "- Public-key encryption self-test: `Enc_hpk(0/1)` then `Dec_hsk`\n"
         "- Gate self-test: `EvalBinGate(AND, Enc_hpk(1), Enc_hpk(1)) = 1`\n\n"
+        "## Size note\n\n"
+        "The LWE public key is large because it contains many LWE public-key "
+        "samples. The JSON file expands vectors into decimal text and is much "
+        "larger than the binary form; runtime code should prefer `.bin` files. "
+        "The switching evaluation key is also large and is separate from `hpk`.\n\n"
         "These files are demo material only and are not production security "
         "parameters.\n");
 

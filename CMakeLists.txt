@@ -39,6 +39,7 @@ add_executable(demo_loop
     src/fhe/fhe_context.cpp
     src/gates/fhe_gates.cpp
     src/gc/boolean_circuit.cpp
+    src/gc/boolean_circuit_export.cpp
     src/gc/controlled_reveal_circuit.cpp
     src/gc/garbled_predicate_evaluator.cpp
     src/gc/minimal_garbled_circuit.cpp

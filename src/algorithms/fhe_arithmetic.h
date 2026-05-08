@@ -10,6 +10,10 @@ public:
     std::vector<LWECiphertext> Increment(
         const std::vector<LWECiphertext>& x);
 
+    std::vector<LWECiphertext> Add(
+        const std::vector<LWECiphertext>& lhs,
+        const std::vector<LWECiphertext>& rhs);
+
 private:
     FHEGates& fhe_gates;
 };

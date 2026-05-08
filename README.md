@@ -14,9 +14,9 @@ The predicate is evaluated as a bit-level comparator using `AND`, `XOR`, and `NO
 
 The demo calls the predicate through an `EncryptedPredicateEvaluator` interface so the current controlled-reveal prototype can later be replaced by an offline garbled-circuit artifact.
 
-The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= b]`, then updates the encrypted state with a bit-level homomorphic increment.
+The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= b]`, then updates the encrypted state with `one' = Enc(1)` supplied by the client.
 
-`Circuit_g` is exported as a garbling-ready Boolean circuit with stable wire ids, gate ids, input wires, output wires, and a demo OpenFHE LWE-like decryption arithmetic subcircuit for `b - <a,hsk> mod q`.
+`Circuit_g` is exported as a garbling-ready Boolean circuit with stable wire ids, gate ids, input wires, output wires, and a demo OpenFHE LWE-like decryption arithmetic subcircuit for `b - <a,hsk> mod q`. The latest demo dump is written to `artifacts/circuit_g_demo.txt`.
 
 In `MOCK_OPENFHE` mode, the Docker `gc_mock` target now uses an EMP-toolkit half-gates garbled-circuit artifact on every loop iteration. The in-repo minimal GC backend remains available as a fallback when `USE_EMP_GC` is not set.
 

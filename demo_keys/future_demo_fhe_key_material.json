@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "purpose": "Fixed demo key material for the controlled-reveal GC prototype.",
+  "status": "prototype-demo-material-not-production-openfhe-serialization",
+  "current_fhe_path": "OpenFHE BinFHE/LWE bit ciphertexts",
+  "hpk": {
+    "present_in_current_binfhe_path": false,
+    "reason": "The current BinFHE prototype encrypts bits with an LWE private key. Evaluator-side homomorphic gates use evaluation/context material and ciphertexts, not a public encryption key.",
+    "design_decision": "Evaluator should not receive hpk. Client supplies encrypted constants such as one_prime = Enc(1)."
+  },
+  "hsk": {
+    "fixed_demo_lwe_secret_bits": [1, 0, 1, 1],
+    "used_by": "src/gc/openfhe_lwe_decryption_circuit.cpp",
+    "embedded_into_gc_as": "hardcoded_openfhe_lwe_hsk_0..3 selected constant labels"
+  },
+  "encrypted_constants_for_future_demo": {
+    "one_prime": {
+      "plaintext": 1,
+      "bit_length": 4,
+      "owner": "client setup",
+      "consumer": "evaluator loop",
+      "usage": "x_prime <- FHE.Add(x_prime, one_prime)"
+    }
+  },
+  "next_step_for_real_key_files": "Add OpenFHE key/ciphertext serialization after choosing whether the production path remains BinFHE symmetric-key FHE or switches to a public-key OpenFHE scheme."
+}

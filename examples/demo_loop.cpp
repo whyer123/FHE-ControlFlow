@@ -3,6 +3,7 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
+#include "src/gc/boolean_circuit_export.h"
 #ifdef USE_EMP_GC
 #include "src/gc/emp_garbled_circuit.h"
 #else
@@ -10,6 +11,7 @@
 #endif
 #include "src/gc/garbled_predicate_evaluator.h"
 #include "src/gc/predicate_gc.h"
+#include <filesystem>
 
 int main() {
     std::cout << "--- Controlled Reveal Predicate Prototype ---" << std::endl;
@@ -33,8 +35,14 @@ int main() {
     std::cout << "Encrypting loop endpoints a' and b' (bit_length = " << bit_length << ")" << std::endl;
     auto enc_a = fhe_ctx.EncryptInteger(start_value, bit_length);
     auto enc_b = fhe_ctx.EncryptInteger(target_value, bit_length);
+    auto enc_one = fhe_ctx.EncryptInteger(1, bit_length);
+    std::cout << "Client supplied encrypted increment one' = Enc(1)" << std::endl;
 
     auto circuit = circuit_builder.DescribeLessOrEqualCircuit(bit_length);
+    std::filesystem::create_directories("artifacts");
+    const std::string circuit_dump_path = "artifacts/circuit_g_demo.txt";
+    WriteBooleanCircuitText(circuit, circuit_dump_path);
+    std::cout << "Circuit_g dump path: " << circuit_dump_path << std::endl;
 #ifdef USE_EMP_GC
     EmpGarbledCircuit garbler;
     auto garbled_artifact = garbler.Garble(circuit);
@@ -110,7 +118,7 @@ int main() {
         }
 
         ++iterations;
-        state = arithmetic.Increment(state);
+        state = arithmetic.Add(state, enc_one);
     }
 
     std::cout << "Encrypted loop iterations executed: " << iterations << std::endl;

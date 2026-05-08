@@ -320,6 +320,7 @@ examples/demo_loop.cpp
 ```text
 a' = Enc(a)
 b' = Enc(b)
+one' = Enc(1)
 ```
 
 目前 mock demo 使用：
@@ -330,7 +331,12 @@ b = 7
 bit_length = 4
 ```
 
-5. 產生 `Circuit_g` 描述。
+5. 產生 `Circuit_g` 描述，並輸出到：
+
+```text
+artifacts/circuit_g_demo.txt
+```
+
 6. 在 Docker `gc_mock` 中產生 EMP half-gates garbled artifact；未設定 `USE_EMP_GC` 時才使用 minimal fallback。
 7. 建立 `GarbledPredicateEvaluator`，把 `Circuit_g` artifact 包成 `GC_f(x', b') -> bool`。
 8. 在 mock mode 下把 `a'`、`b'` 的 bit 值編成 input labels，驗證 EMP GC 對 `[a <= b]` 的輸出。
@@ -342,7 +348,7 @@ while true:
     cond = GC_f(x', b')
     if cond == 0:
         stop
-    x' = x' + 1'
+    x' = FHE.Add(x', one')
 ```
 
 目前 demo 會揭露：
@@ -388,6 +394,7 @@ hsk
 4. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
 5. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 6. artifact 還沒有 serialization，所以 client setup 和 evaluator loop 還在同一個 executable 裡。
+7. `demo_keys/future_demo_fhe_key_material.json` 目前是固定 demo key material 記錄，不是 production OpenFHE key serialization。
 
 ## 下一步
 

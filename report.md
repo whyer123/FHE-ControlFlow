@@ -240,6 +240,7 @@ loop 從 encrypted `a'` 開始：
 ```text
 x' = Enc(3)
 b' = Enc(7)
+one' = Enc(1)
 ```
 
 每一輪只揭露：
@@ -254,7 +255,11 @@ b' = Enc(7)
 current x', b' bits -> input labels -> garbled tables -> output decode
 ```
 
-也就是 loop 的停止條件已經走 EMP half-gates GC artifact。
+也就是 loop 的停止條件已經走 EMP half-gates GC artifact；state update 則使用 client 提供的 encrypted constant：
+
+```text
+x' <- FHE.Add(x', one')
+```
 
 實際 predicate sequence 是：
 
@@ -327,5 +332,6 @@ hsk = [1, 0, 1, 1]
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。
 - in-repo Minimal GC backend 只保留為無 EMP 環境的 fallback，不是主要展示路徑。
 - Client setup 和 evaluator loop 還在同一個 executable，`GC_f` artifact 尚未寫檔或跨程序載入。
+- `demo_keys/future_demo_fhe_key_material.json` 是目前固定 demo key material 的描述，不是 production OpenFHE key serialization。
 
 所以目前 demo 證明的是 offline GC control-flow 的資料流，不是完整 OpenFHE production integration。

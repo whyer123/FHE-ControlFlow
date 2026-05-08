@@ -1,5 +1,6 @@
 # Build artifacts
 build/
+build-local/
 demo_mock
 *.o
 *.a

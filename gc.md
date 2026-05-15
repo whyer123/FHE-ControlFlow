@@ -517,6 +517,35 @@ switch.words_b=76800
 
 這一步只完成「把 OpenFHE eval keys 從 serialized object 轉成 C++ 整數資料」。下一步還要把這些 flat words 的索引 layout 精確接回 `EvalAccCGGI` 和 `SwitchCTtoqn`。
 
+## OpenFHE accumulator init alignment
+
+standalone controlled-reveal source 目前已對齊 OpenFHE `BootstrapGateCore` 的 gate constants 與 coefficient-domain accumulator 初始化。
+
+以目前 TOY `q=512`：
+
+```text
+AND gate constant = 7 * (q >> 3) = 448
+XOR gate constant = 6 * (q >> 3) = 384
+```
+
+OpenFHE 會用：
+
+```text
+q1 = gate_constant
+q2 = q1 + q/2 mod q
+lb = min_wrapped(q1, q2)
+ub = max_wrapped(q1, q2)
+```
+
+然後從 pre-bootstrap ciphertext 的 `b` 開始，依序檢查 `b, b-1, b-2, ...` 是否落在 `[lb, ub)`，只填 sparse accumulator 的每 `factor=N/(q/2)` 個 coefficient。message 使用：
+
+```text
+positive = Q/(2p) + 1
+negative = Q - positive
+```
+
+目前這仍是 coefficient-domain 初始化；下一步要補的是 OpenFHE 的 NTT / CGGI accumulation / external product。
+
 ## OpenFHE EvalBinGate circuit dump
 
 目前新增一個專門檢查 `OpenFHE.EvalBinGate` 展開形狀的工具：

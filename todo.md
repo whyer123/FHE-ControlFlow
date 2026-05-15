@@ -22,19 +22,23 @@
 - 新增 `evaluator_runtime_material_check`，只載入 OpenFHE context/evaluation keys、`a'`、integer `one'`，做一次 encrypted add，確認 runtime 不需 `hpk/hsk`。
 - 新增 `OpenFHEEvalBinGateCircuit`，把 demo LWE ciphertext fields、OpenFHE additive pre-bootstrap step、固定 demo `hsk` selected-label constants 展開成 Boolean circuit。
 - 新增 `dump_openfhe_eval_bin_gate_circuit` 與 `./build_mock.sh --evalbingate-circuit`，可輸出 AND/OR/XOR/XNOR 的 `openfhe_evalbingate_*_demo.txt` circuit dump。
-- 新增 `src/gc/openfhe_controlled_reveal_reference.cpp`，用單檔 lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、include、OpenFHE runtime type、path、print 或 demo key dependency。
-- 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接驗證單檔 lowering source 的 fixed-hsk controlled reveal。
+- 新增 `src/gc/openfhe_controlled_reveal_reference.cpp`，用單檔 lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、include、OpenFHE runtime type、path、print 或 key-loading dependency。
+- 把 lowering source 的 fixed hsk 換成已生成 OpenFHE keypair 的實際 ternary secret，並對齊目前 demo material 的 `n=64, q=512`。
+- 移除 lowering source 裡「先解出 gate bit 再假重加密」的 semantic shortcut，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的 OpenFHE gate/bootstrap 資料流骨架。
+- 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 fixed-hsk decryption arithmetic。
+- 新增 `test_controlled_reveal_source_no_placeholder.sh`，防止 lowering source 又退回 semantic gate decode 或 fake re-encrypt。
 
 ## 還差什麼
 
 - 把 `src/gc/openfhe_controlled_reveal_reference.cpp` 的完整邏輯 lowering 成 Boolean circuit。
 - 把目前 transitional fixed-bound `GC_f(x')` runtime 改回最終需要的 `GC_f(x', b')` runtime contract。
-- 把 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
-- 對齊 OpenFHE production decrypt 的真實 ciphertext fields、參數大小和 noise range；目前只有 toy 參數的 rounding shape。
+- 把 `OpenFHEEvalBinGateCircuit` dump 裡的 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前 dump 工具仍只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
+- 把 `openfhe_controlled_reveal_reference.cpp` 裡的 `ExternalProductCGGI`、`EvalAccCGGI`、`SwitchCTtoqn` 補成 OpenFHE 1.5.0 bit-accurate arithmetic；目前已移除 semantic shortcut，但 bootstrap/key-switch internals 仍是結構骨架。
+- 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
 - 把真實 OpenFHE ciphertext field bits 接到 fixed GC input，而不是目前 fixed runtime 的 mock `.bit` material。
 - 把真實 OpenFHE ciphertext bit/word serialization 接到 GC input，而不是目前的 `MOCK_OPENFHE` `.bit`。
-- 把真實 OpenFHE `hsk` 展成 `Circuit_g` constant/selected-label material；目前 GC 仍使用 toy 4-bit hsk。
+- 把實際 OpenFHE `hsk` 展成 `Circuit_g` constant/selected-label material；目前 standalone lowering source 已寫入實際 TOY hsk，但主要 GC runtime 仍使用早期 toy 4-bit hsk。
 - 把 `b'` 的真實 OpenFHE ciphertext/eval material 固定進 GC，而不是目前用 fixed plaintext bound bits 做 mock comparator。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
 - 加測試：comparator correctness、increment correctness、BooleanCircuit evaluation、EMP GC label flow。

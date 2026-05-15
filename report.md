@@ -447,7 +447,7 @@ b
 hsk
 ```
 
-目前 `hsk` 是固定寫進 GC 的 toy key bits：
+目前主要 mock GC runtime 裡，`hsk` 仍是早期固定 toy key bits：
 
 ```text
 hsk = [1, 0, 1, 1]
@@ -455,13 +455,15 @@ hsk = [1, 0, 1, 1]
 
 它是 GC 內部 constant selected labels，不是公開的 0/1 label pairs。
 
+新的 `src/gc/openfhe_controlled_reveal_reference.cpp` 則已經改成使用已生成 OpenFHE TOY keypair 裡的實際 64 個 ternary `hsk` 係數，並用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 `Dec_hsk` 算術。這個 reference source 是接下來要 lowering 成 GC 的版本，還沒接到主要 runtime。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
 
 - `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
-- LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
-- Decode 目前是 noiseless `phase[2]`，還沒有完整 OpenFHE rounding/noise handling。
+- 主要 GC runtime 的 LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
+- `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。
 - in-repo Minimal GC backend 只保留為無 EMP 環境的 fallback，不是主要展示路徑。
 - Client setup 和 evaluator loop 還在同一個 executable，`GC_f` artifact 尚未寫檔或跨程序載入。

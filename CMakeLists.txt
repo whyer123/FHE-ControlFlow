@@ -99,11 +99,11 @@ target_link_libraries(evaluator_runtime_material_check
     ${OpenFHE_LIBRARIES}
 )
 
-add_executable(openfhe_controlled_reveal_reference
-    tools/openfhe_controlled_reveal_reference.cpp
+add_executable(openfhe_controlled_reveal_reference_test
+    tests/openfhe_controlled_reveal_reference_test.cpp
 )
 
-target_link_libraries(openfhe_controlled_reveal_reference
+target_link_libraries(openfhe_controlled_reveal_reference_test
     ${OpenFHE_LIBRARIES}
 )
 

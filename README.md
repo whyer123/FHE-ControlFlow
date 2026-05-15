@@ -20,32 +20,36 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 In `MOCK_OPENFHE` mode, the Docker `gc_mock` target now uses an EMP-toolkit half-gates garbled-circuit artifact on every loop iteration. The in-repo minimal GC backend remains available as a fallback when `USE_EMP_GC` is not set.
 
-## OpenFHE Controlled-Reveal Reference
+## OpenFHE Controlled-Reveal Logic
 
 Before lowering the whole expression into a Boolean circuit, the repo includes
-one single-file OpenFHE reference implementation for the exact target logic:
+one lowering-ready OpenFHE reference logic file for the exact target:
 
 ```text
 Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
 ```
 
-Build and run:
-
-```bash
-cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release
-cmake --build build-local --target openfhe_controlled_reveal_reference --parallel 2
-./build-local/openfhe_controlled_reveal_reference demo_keys/openfhe_binfhe_demo_keypair
-```
-
 The source is:
 
 ```text
-tools/openfhe_controlled_reveal_reference.cpp
+src/gc/openfhe_controlled_reveal_reference.h
 ```
 
-It loads OpenFHE context/evaluation keys, `a'`, `b'`, `one'`, and `hsk`;
-it does not load `hpk`. The `hsk` use is intentionally tied to the final
-controlled reveal after `Eval([x <= b])`, not exposed as a reusable decrypt API.
+This file has no `main`, no filesystem paths, no serialization, and no
+printing. `hsk`, `x'`, and `b'` are explicit function inputs, so the next
+lowering step can replace those values with Boolean circuit wires/constants.
+
+The verification target uses OpenFHE `STD128` in memory, not the repo-local
+demo key directory:
+
+```bash
+cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release
+cmake --build build-local --target openfhe_controlled_reveal_reference_test --parallel 2
+./build-local/openfhe_controlled_reveal_reference_test
+```
+
+The logic file does not expose a reusable `Dec_hsk(c')` API; decryption is
+tied to the predicate ciphertext produced by `EvalLessOrEqualPredicate`.
 
 ## OpenFHE EvalBinGate Circuit Dump
 

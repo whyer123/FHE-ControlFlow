@@ -7,6 +7,7 @@ namespace {
 using controlled_reveal_reference::EvaluationKeys;
 using controlled_reveal_reference::IntegerCiphertext;
 using controlled_reveal_reference::LweCiphertext;
+using controlled_reveal_reference::RingPolynomial;
 using controlled_reveal_reference::RingAccumulator;
 
 LweCiphertext OnePrimeCiphertextFromOpenFHE() {
@@ -59,15 +60,45 @@ int main() {
     const RingAccumulator and_accumulator =
         controlled_reveal_reference::InitGateAccumulator(
             controlled_reveal_reference::GateAnd, prebootstrap);
-    if (and_accumulator.b[0] !=
+    if (and_accumulator.b.coeffs[0] !=
         controlled_reveal_reference::kAccumulatorNegativeMessage) {
         return EXIT_FAILURE;
     }
-    if (and_accumulator.b[2] !=
+    if (and_accumulator.b.coeffs[2] !=
         controlled_reveal_reference::kAccumulatorPositiveMessage) {
         return EXIT_FAILURE;
     }
-    if (and_accumulator.b[1] != 0U || and_accumulator.b[3] != 0U) {
+    if (and_accumulator.b.coeffs[1] != 0U ||
+        and_accumulator.b.coeffs[3] != 0U) {
+        return EXIT_FAILURE;
+    }
+
+    const RingPolynomial decomposed_513 =
+        controlled_reveal_reference::SignedDigitDecomposePolynomial(513U);
+    if (decomposed_513.coeffs[0] != 1U ||
+        decomposed_513.coeffs[2] != 0U) {
+        return EXIT_FAILURE;
+    }
+
+    RingPolynomial monomial_input = {};
+    monomial_input.coeffs[0] = 7U;
+    const RingPolynomial shifted =
+        controlled_reveal_reference::MultiplyByNegacyclicMonomial(
+            monomial_input, 513U);
+    if (shifted.coeffs[1] !=
+        controlled_reveal_reference::kRingModulus - 7U) {
+        return EXIT_FAILURE;
+    }
+
+    controlled_reveal_reference::DecomposedAccumulator decomposed = {};
+    decomposed.digits[0].coeffs[0] = 2U;
+    controlled_reveal_reference::CggiBootstrapKeyRow key_row = {};
+    key_row.digits[0].a.coeffs[0] = 3U;
+    key_row.digits[0].b.coeffs[0] = 5U;
+    const RingAccumulator product =
+        controlled_reveal_reference::ExternalProductCGGI(
+            decomposed, key_row);
+    if (product.a.coeffs[0] != 6U || product.b.coeffs[0] != 10U) {
         return EXIT_FAILURE;
     }
 

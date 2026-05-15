@@ -546,6 +546,18 @@ negative = Q - positive
 
 目前這仍是 coefficient-domain 初始化；下一步要補的是 OpenFHE 的 NTT / CGGI accumulation / external product。
 
+目前 source 已新增 CGGI bootstrap 的必要 primitives：
+
+```text
+SignedDigitDecomposeAccumulator
+MultiplyByNegacyclicMonomial
+MultiplyPolynomials
+ExternalProductCGGI
+AddToAccCGGI
+```
+
+這些 primitives 先用 coefficient-domain 形式描述，方便之後 lowering 成 Boolean circuit。尚未完成的是：把 `export_openfhe_eval_key_material` 的真實 refresh key words 接到 `EvaluationKeys`，以及決定要完整實作 OpenFHE NTT/evaluation-domain，或讓 exporter 直接輸出 coefficient-domain keys 後在 source 裡做 negacyclic convolution。
+
 ## OpenFHE EvalBinGate circuit dump
 
 目前新增一個專門檢查 `OpenFHE.EvalBinGate` 展開形狀的工具：

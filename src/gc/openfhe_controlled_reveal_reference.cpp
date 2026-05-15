@@ -50,13 +50,21 @@ struct IntegerCiphertext {
     LweCiphertext bits[kIntegerBits];
 };
 
+struct RingPolynomial {
+    u32 coeffs[kRingDimension];
+};
+
 struct RingAccumulator {
-    u32 a[kRingDimension];
-    u32 b[kRingDimension];
+    RingPolynomial a;
+    RingPolynomial b;
 };
 
 struct CggiBootstrapKeyRow {
     RingAccumulator digits[kCggiExternalProductDigits];
+};
+
+struct DecomposedAccumulator {
+    RingPolynomial digits[kCggiExternalProductDigits];
 };
 
 struct SwitchingKeyRow {
@@ -69,7 +77,8 @@ struct SwitchingKeyRow {
 // OpenFHE's serialized refresh/switch keys into these arrays is still the next
 // implementation step.
 struct EvaluationKeys {
-    CggiBootstrapKeyRow bootstrap[kLweDimension];
+    bool material_loaded;
+    CggiBootstrapKeyRow bootstrap[2][kLweDimension];
     SwitchingKeyRow switching[kRingDimension];
 };
 
@@ -251,8 +260,8 @@ RingAccumulator AddAccumulator(const RingAccumulator& lhs,
                                const RingAccumulator& rhs) {
     RingAccumulator out = {};
     for (u32 i = 0; i < kRingDimension; ++i) {
-        out.a[i] = AddModRing(lhs.a[i], rhs.a[i]);
-        out.b[i] = AddModRing(lhs.b[i], rhs.b[i]);
+        out.a.coeffs[i] = AddModRing(lhs.a.coeffs[i], rhs.a.coeffs[i]);
+        out.b.coeffs[i] = AddModRing(lhs.b.coeffs[i], rhs.b.coeffs[i]);
     }
     return out;
 }
@@ -261,15 +270,24 @@ RingAccumulator SubAccumulator(const RingAccumulator& lhs,
                                const RingAccumulator& rhs) {
     RingAccumulator out = {};
     for (u32 i = 0; i < kRingDimension; ++i) {
-        out.a[i] = SubModRing(lhs.a[i], rhs.a[i]);
-        out.b[i] = SubModRing(lhs.b[i], rhs.b[i]);
+        out.a.coeffs[i] = SubModRing(lhs.a.coeffs[i], rhs.a.coeffs[i]);
+        out.b.coeffs[i] = SubModRing(lhs.b.coeffs[i], rhs.b.coeffs[i]);
     }
     return out;
 }
 
-RingAccumulator RotateAccumulatorByMonomial(const RingAccumulator& value,
+RingPolynomial AddPolynomials(const RingPolynomial& lhs,
+                              const RingPolynomial& rhs) {
+    RingPolynomial out = {};
+    for (u32 i = 0; i < kRingDimension; ++i) {
+        out.coeffs[i] = AddModRing(lhs.coeffs[i], rhs.coeffs[i]);
+    }
+    return out;
+}
+
+RingPolynomial MultiplyByNegacyclicMonomial(const RingPolynomial& value,
                                             u32 exponent) {
-    RingAccumulator out = {};
+    RingPolynomial out = {};
     const u32 wrapped_exponent = exponent % (2U * kRingDimension);
     const bool negacyclic = wrapped_exponent >= kRingDimension;
     const u32 shift = wrapped_exponent % kRingDimension;
@@ -279,14 +297,38 @@ RingAccumulator RotateAccumulatorByMonomial(const RingAccumulator& value,
         const bool wrapped = i + shift >= kRingDimension;
         const bool negate = negacyclic != wrapped;
 
-        out.a[target] = negate && value.a[i] != 0
-                            ? kRingModulus - value.a[i]
-                            : value.a[i];
-        out.b[target] = negate && value.b[i] != 0
-                            ? kRingModulus - value.b[i]
-                            : value.b[i];
+        out.coeffs[target] = negate && value.coeffs[i] != 0
+                                 ? kRingModulus - value.coeffs[i]
+                                 : value.coeffs[i];
     }
 
+    return out;
+}
+
+RingAccumulator MultiplyAccumulatorByNegacyclicMonomial(
+    const RingAccumulator& value,
+    u32 exponent) {
+    RingAccumulator out = {};
+    out.a = MultiplyByNegacyclicMonomial(value.a, exponent);
+    out.b = MultiplyByNegacyclicMonomial(value.b, exponent);
+    return out;
+}
+
+RingPolynomial MultiplyPolynomials(const RingPolynomial& lhs,
+                                   const RingPolynomial& rhs) {
+    RingPolynomial out = {};
+    for (u32 i = 0; i < kRingDimension; ++i) {
+        for (u32 j = 0; j < kRingDimension; ++j) {
+            const u32 product = MulModRing(lhs.coeffs[i], rhs.coeffs[j]);
+            const u32 index = i + j;
+            if (index < kRingDimension) {
+                out.coeffs[index] = AddModRing(out.coeffs[index], product);
+            } else {
+                out.coeffs[index - kRingDimension] =
+                    SubModRing(out.coeffs[index - kRingDimension], product);
+            }
+        }
+    }
     return out;
 }
 
@@ -306,18 +348,76 @@ RingAccumulator InitGateAccumulator(GateKind gate,
     // coefficient is assigned; all other coefficients stay zero. OpenFHE then
     // NTT-converts this polynomial before CGGI accumulation.
     for (u32 i = 0; i < kRingDimension; i += factor) {
-        out.b[i] = InHalfOpenRange(shifted_b, range.lb, range.ub) ? lv : uv;
+        out.b.coeffs[i] =
+            InHalfOpenRange(shifted_b, range.lb, range.ub) ? lv : uv;
         shifted_b = SubModQ(shifted_b, 1U);
     }
 
     return out;
 }
 
-u32 SignedGadgetDigit(u32 value, u32 digit_index) {
-    return (value >> (digit_index * kGadgetBaseBits)) & (kGadgetBase - 1U);
+i64 CenteredRingValue(u32 value) {
+    if (value < (kRingModulus >> 1)) {
+        return static_cast<i64>(value);
+    }
+    return static_cast<i64>(value) - static_cast<i64>(kRingModulus);
 }
 
-RingAccumulator ExternalProductCGGI(const RingAccumulator& decomposed_input,
+i64 SignedBaseRemainder(i64 value) {
+    i64 remainder = value % static_cast<i64>(kGadgetBase);
+    const i64 half_base = static_cast<i64>(kGadgetBase / 2U);
+    if (remainder >= half_base) {
+        remainder -= kGadgetBase;
+    }
+    if (remainder < -half_base) {
+        remainder += kGadgetBase;
+    }
+    return remainder;
+}
+
+u32 SignedDigitToRing(i64 digit) {
+    return digit < 0 ? ModRing(digit) : static_cast<u32>(digit);
+}
+
+void DecomposeScalarIntoDigits(u32 value,
+                               DecomposedAccumulator& out,
+                               u32 digit_offset,
+                               u32 coeff_index) {
+    i64 centered = CenteredRingValue(value);
+    i64 remainder = SignedBaseRemainder(centered);
+    centered = (centered - remainder) / static_cast<i64>(kGadgetBase);
+
+    for (u32 digit = digit_offset; digit < kCggiExternalProductDigits;
+         digit += 2U) {
+        remainder = SignedBaseRemainder(centered);
+        centered = (centered - remainder) / static_cast<i64>(kGadgetBase);
+        out.digits[digit].coeffs[coeff_index] =
+            AddModRing(out.digits[digit].coeffs[coeff_index],
+                       SignedDigitToRing(remainder));
+    }
+}
+
+RingPolynomial SignedDigitDecomposePolynomial(u32 value) {
+    DecomposedAccumulator out = {};
+    DecomposeScalarIntoDigits(value, out, 0, 0);
+    RingPolynomial packed = {};
+    for (u32 digit = 0; digit < kCggiExternalProductDigits; ++digit) {
+        packed.coeffs[digit] = out.digits[digit].coeffs[0];
+    }
+    return packed;
+}
+
+DecomposedAccumulator SignedDigitDecomposeAccumulator(
+    const RingAccumulator& input) {
+    DecomposedAccumulator out = {};
+    for (u32 i = 0; i < kRingDimension; ++i) {
+        DecomposeScalarIntoDigits(input.a.coeffs[i], out, 0, i);
+        DecomposeScalarIntoDigits(input.b.coeffs[i], out, 1, i);
+    }
+    return out;
+}
+
+RingAccumulator ExternalProductCGGI(const DecomposedAccumulator& decomposed,
                                     const CggiBootstrapKeyRow& key_row) {
     // This keeps the CGGI data-flow surface explicit: signed digit
     // decomposition of the RLWE accumulator difference, then public
@@ -327,55 +427,75 @@ RingAccumulator ExternalProductCGGI(const RingAccumulator& decomposed_input,
     RingAccumulator out = {};
 
     for (u32 digit = 0; digit < kCggiExternalProductDigits; ++digit) {
-        for (u32 i = 0; i < kRingDimension; ++i) {
-            const u32 digit_a =
-                SignedGadgetDigit(decomposed_input.a[i], digit);
-            const u32 digit_b =
-                SignedGadgetDigit(decomposed_input.b[i], digit);
-
-            out.a[i] = AddModRing(
-                out.a[i],
-                AddModRing(MulModRing(digit_a,
-                                      key_row.digits[digit].a[i]),
-                           MulModRing(digit_b,
-                                      key_row.digits[digit].a[i])));
-            out.b[i] = AddModRing(
-                out.b[i],
-                AddModRing(MulModRing(digit_a,
-                                      key_row.digits[digit].b[i]),
-                           MulModRing(digit_b,
-                                      key_row.digits[digit].b[i])));
-        }
+        out.a = AddPolynomials(
+            out.a,
+            MultiplyPolynomials(decomposed.digits[digit],
+                                key_row.digits[digit].a));
+        out.b = AddPolynomials(
+            out.b,
+            MultiplyPolynomials(decomposed.digits[digit],
+                                key_row.digits[digit].b));
     }
 
     return out;
 }
 
+u32 ModSwitchToMonomialExponent(u32 value) {
+    return ((2U * kRingDimension) * value + kCiphertextModulus / 2U) /
+           kCiphertextModulus;
+}
+
+u32 NegateMod(u32 value, u32 modulus) {
+    return value == 0 ? 0 : modulus - value;
+}
+
+void AddToAccCGGI(const CggiBootstrapKeyRow& positive_key,
+                  const CggiBootstrapKeyRow& negative_key,
+                  u32 monomial_exponent,
+                  RingAccumulator& accumulator) {
+    const DecomposedAccumulator decomposed =
+        SignedDigitDecomposeAccumulator(accumulator);
+    const u32 positive_index = monomial_exponent % (2U * kRingDimension);
+    const u32 negative_index =
+        NegateMod(positive_index, 2U * kRingDimension);
+
+    const RingAccumulator positive_product =
+        MultiplyAccumulatorByNegacyclicMonomial(
+            ExternalProductCGGI(decomposed, positive_key), positive_index);
+    const RingAccumulator negative_product =
+        MultiplyAccumulatorByNegacyclicMonomial(
+            ExternalProductCGGI(decomposed, negative_key), negative_index);
+
+    accumulator = AddAccumulator(
+        AddAccumulator(accumulator, positive_product), negative_product);
+}
+
 void EvalAccCGGI(const EvaluationKeys& eval_keys,
                  const LweCiphertext& prebootstrap,
                  RingAccumulator& accumulator) {
+    if (!eval_keys.material_loaded) {
+        return;
+    }
+
     for (u32 i = 0; i < kLweDimension; ++i) {
         const u32 monomial_exponent =
-            ((2U * kRingDimension) * prebootstrap.a[i] +
-             kCiphertextModulus / 2U) /
-            kCiphertextModulus;
-        const RingAccumulator rotated =
-            RotateAccumulatorByMonomial(accumulator, monomial_exponent);
-        const RingAccumulator delta = SubAccumulator(rotated, accumulator);
-        const RingAccumulator key_product =
-            ExternalProductCGGI(delta, eval_keys.bootstrap[i]);
-        accumulator = AddAccumulator(accumulator, key_product);
+            ModSwitchToMonomialExponent(
+                NegateMod(prebootstrap.a[i], kCiphertextModulus));
+        AddToAccCGGI(eval_keys.bootstrap[0][i],
+                     eval_keys.bootstrap[1][i],
+                     monomial_exponent,
+                     accumulator);
     }
 }
 
 LargeLweCiphertext ExtractLweFromAccumulator(
     const RingAccumulator& accumulator) {
     LargeLweCiphertext out = {};
-    out.b = accumulator.b[0];
+    out.b = accumulator.b.coeffs[0];
 
     for (u32 i = 0; i < kRingDimension; ++i) {
         const u32 source = i == 0 ? 0 : kRingDimension - i;
-        out.a[i] = accumulator.a[source];
+        out.a[i] = accumulator.a.coeffs[source];
     }
 
     return out;

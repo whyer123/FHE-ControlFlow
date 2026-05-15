@@ -72,11 +72,40 @@ target_link_libraries(prepare_openfhe_constants
     ${OpenFHE_LIBRARIES}
 )
 
+add_executable(setup_fixed_gc_material
+    tools/setup_fixed_gc_material.cpp
+    src/fhe/fhe_context.cpp
+    src/gates/fhe_gates.cpp
+    src/gc/active_garbled_circuit_io.cpp
+    src/gc/boolean_circuit.cpp
+    src/gc/boolean_circuit_export.cpp
+    src/gc/boolean_circuit_io.cpp
+    src/gc/controlled_reveal_circuit.cpp
+    src/gc/garbled_predicate_evaluator.cpp
+    src/gc/minimal_garbled_circuit.cpp
+    src/gc/openfhe_lwe_decryption_circuit.cpp
+    ${GC_BACKEND_SOURCES}
+)
+
+target_link_libraries(setup_fixed_gc_material
+    ${OpenFHE_LIBRARIES}
+)
+
+add_executable(evaluator_runtime_material_check
+    tools/evaluator_runtime_material_check.cpp
+)
+
+target_link_libraries(evaluator_runtime_material_check
+    ${OpenFHE_LIBRARIES}
+)
+
 if(USE_EMP_GC)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
-        target_compile_options(demo_loop PRIVATE -march=armv8-a+simd+crypto+crc)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
-        target_compile_options(demo_loop PRIVATE -maes -msse4.1)
-    endif()
-    target_link_libraries(demo_loop ${EMP_TOOL_LIBRARY} ssl crypto pthread)
+    foreach(GC_TARGET demo_loop setup_fixed_gc_material)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
+            target_compile_options(${GC_TARGET} PRIVATE -march=armv8-a+simd+crypto+crc)
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")
+            target_compile_options(${GC_TARGET} PRIVATE -maes -msse4.1)
+        endif()
+        target_link_libraries(${GC_TARGET} ${EMP_TOOL_LIBRARY} ssl crypto pthread)
+    endforeach()
 endif()

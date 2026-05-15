@@ -2,6 +2,8 @@
 set -e
 
 echo "Building Mock FHE Demo..."
+MODE="${1:---legacy}"
+FIXED_GC_ARTIFACT_DIR="${FIXED_GC_ARTIFACT_DIR:-artifacts}"
 
 EXTRA_DEFS=""
 EXTRA_SRCS=""
@@ -24,23 +26,83 @@ else
     echo "Using in-repo minimal GC backend."
 fi
 
-# Compile everything with MOCK_OPENFHE defined.
-g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
-    src/fhe/fhe_context.cpp \
-    src/gates/fhe_gates.cpp \
-    src/gc/boolean_circuit.cpp \
-    src/gc/boolean_circuit_export.cpp \
-    src/gc/controlled_reveal_circuit.cpp \
-    src/gc/garbled_predicate_evaluator.cpp \
-    src/gc/minimal_garbled_circuit.cpp \
-    src/gc/openfhe_lwe_decryption_circuit.cpp \
-    ${EXTRA_SRCS} \
-    src/algorithms/fhe_arithmetic.cpp \
-    src/algorithms/fhe_cmp.cpp \
-    examples/demo_loop.cpp \
-    ${EXTRA_LIBS} \
-    -o demo_mock
+build_legacy_demo() {
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/fhe/fhe_context.cpp \
+        src/gates/fhe_gates.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_export.cpp \
+        src/gc/controlled_reveal_circuit.cpp \
+        src/gc/garbled_predicate_evaluator.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        src/gc/openfhe_lwe_decryption_circuit.cpp \
+        ${EXTRA_SRCS} \
+        src/algorithms/fhe_arithmetic.cpp \
+        src/algorithms/fhe_cmp.cpp \
+        examples/demo_loop.cpp \
+        ${EXTRA_LIBS} \
+        -o demo_mock
 
-echo "Build successful! Running demo_mock..."
-echo "----------------------------------------"
-./demo_mock
+    echo "Build successful! Running demo_mock..."
+    echo "----------------------------------------"
+    ./demo_mock
+}
+
+build_fixed_setup() {
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/fhe/fhe_context.cpp \
+        src/gates/fhe_gates.cpp \
+        src/gc/active_garbled_circuit_io.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_export.cpp \
+        src/gc/boolean_circuit_io.cpp \
+        src/gc/controlled_reveal_circuit.cpp \
+        src/gc/garbled_predicate_evaluator.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        src/gc/openfhe_lwe_decryption_circuit.cpp \
+        ${EXTRA_SRCS} \
+        tools/setup_fixed_gc_material.cpp \
+        ${EXTRA_LIBS} \
+        -o setup_fixed_gc_material
+
+    echo "Build successful! Preparing fixed GC material..."
+    echo "----------------------------------------"
+    ./setup_fixed_gc_material "${FIXED_GC_ARTIFACT_DIR}"
+}
+
+build_fixed_runtime() {
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/gc/active_garbled_circuit_io.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_io.cpp \
+        src/gc/garbled_predicate_evaluator.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        ${EXTRA_SRCS} \
+        examples/fixed_runtime_demo.cpp \
+        ${EXTRA_LIBS} \
+        -o fixed_runtime_demo
+
+    echo "Build successful! Running fixed_runtime_demo..."
+    echo "----------------------------------------"
+    ./fixed_runtime_demo "${FIXED_GC_ARTIFACT_DIR}"
+}
+
+case "${MODE}" in
+    --legacy)
+        build_legacy_demo
+        ;;
+    --fixed-setup)
+        build_fixed_setup
+        ;;
+    --fixed-runtime)
+        build_fixed_runtime
+        ;;
+    --fixed-all)
+        build_fixed_setup
+        build_fixed_runtime
+        ;;
+    *)
+        echo "unknown build_mock.sh mode: ${MODE}" >&2
+        exit 1
+        ;;
+esac

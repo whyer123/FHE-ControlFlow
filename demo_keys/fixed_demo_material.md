@@ -80,6 +80,8 @@ hsk = [1, 0, 1, 1]
 
 ```text
 one' = Enc_hpk(1)
+a' = Enc_hpk(3)
+b' = Enc_hpk(7)
 ```
 
 檔案在：
@@ -87,6 +89,9 @@ one' = Enc_hpk(1)
 ```text
 demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.json
 demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.bin
+demo_keys/openfhe_binfhe_demo_keypair/a_prime_bit_0..3_lwe_ciphertext.*
+demo_keys/openfhe_binfhe_demo_keypair/b_prime_bit_0..3_lwe_ciphertext.*
+demo_keys/openfhe_binfhe_demo_keypair/one_prime_integer_bit_0..3_lwe_ciphertext.*
 demo_keys/openfhe_binfhe_demo_keypair/encrypted_constants_manifest.md
 ```
 
@@ -94,6 +99,9 @@ demo_keys/openfhe_binfhe_demo_keypair/encrypted_constants_manifest.md
 
 ```text
 Dec_hsk(one') = 1
+Dec_hsk(a'_bits) = 3
+Dec_hsk(b'_bits) = 7
+Dec_hsk(one'_bits) = 1
 ```
 
 因此 evaluator loop 可以直接拿 `one'` 做：
@@ -104,6 +112,44 @@ x' <- FHE.Add(x', one')
 
 不需要拿 `hpk` 自己加密常數。
 
+## Fixed GC runtime artifacts
+
+目前也新增了 fixed-bound evaluator runtime material：
+
+```text
+artifacts/fixed_bound_circuit_g_demo.txt
+artifacts/fixed_bound_circuit_shape.bin
+artifacts/fixed_bound_gc_artifact.bin
+artifacts/a_prime_mock_bits.txt
+artifacts/one_prime_mock_bits.txt
+```
+
+固定 runtime 的介面是：
+
+```text
+GC_f(x')
+```
+
+不是：
+
+```text
+GC_f(x', b')
+```
+
+因此 evaluator runtime 不能替換 threshold。`fixed_bound_circuit_shape.bin` 只保存 wire/gate shape，不保存 constant bit 值；`fixed_bound_gc_artifact.bin` 保存 selected labels 和 garbled tables。
+
+可執行：
+
+```text
+./build_mock.sh --fixed-runtime
+```
+
+若要重新產生 fixed GC artifact：
+
+```text
+./build_mock.sh --fixed-setup
+```
+
 ## Fixed LWE-like decryption parameters
 
 目前要編進 GC 的 toy LWE-like decryption arithmetic 使用：
@@ -111,9 +157,10 @@ x' <- FHE.Add(x', one')
 ```text
 q = 16
 modulus_bits = 4
+p = 4
 hsk = [1, 0, 1, 1]
 mask a = [3, 5, 6, 1]
-decode = phase[2]
+decode = floor(p * (phase + q/(2p)) / q)
 ```
 
 在 Boolean circuit 裡，`hsk` 被 hardcode 成 constant wires：
@@ -146,8 +193,8 @@ artifacts/circuit_g_demo.txt
 
 ```text
 input_bit_length = 4
-wire_count = 382
-gate_count = 338
+wire_count = 415
+gate_count = 366
 public_inputs = x_0,b_0,x_1,b_1,x_2,b_2,x_3,b_3
 output = predicate_bit
 ```
@@ -171,7 +218,7 @@ Circuit_g(c_x, c_b)
    phase = ct_body - recomputed_pad mod q
 
 3. decode:
-   predicate_bit = phase[2]
+   predicate_bit = floor(p * (phase + q/(2p)) / q)
 ```
 
 ## Runtime loop semantics

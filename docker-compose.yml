@@ -13,4 +13,4 @@ services:
       target: gc-mock
     volumes:
       - .:/app
-    command: bash -lc "./build_mock.sh"
+    command: bash -lc "./build_mock.sh --fixed-all"

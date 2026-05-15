@@ -45,9 +45,11 @@ Dec(hsk, Eval([x <= b], x', b'))
 
 ```text
 phase = b - <a,hsk> mod q
+rounded = phase + q/(2p)
+result = floor(p * rounded / q)
 ```
 
-以及 demo 用的 bit decode；但還沒有完整對齊 OpenFHE 的 rounding/noise handling，也還沒有把真實 OpenFHE ciphertext serialization 接進 circuit input。
+以及 demo 用的 rounding/decode shape；但還沒有把真實 OpenFHE ciphertext serialization 接進 circuit input。
 
 也就是說，現在的 `ControlledRevealCircuit` 已經固定 controlled reveal 的安全邊界與資料流，並開始把 `Dec(hsk, predicate_ct)` 的 arithmetic 放進 `Circuit_g`。
 
@@ -140,10 +142,11 @@ decryption 子電路會重新計算：
 ```text
 pad = <a, hsk> mod q
 phase = b - pad mod q
-predicate_bit = phase[2]
+rounded = phase + q/(2p)
+predicate_bit = floor(p * rounded / q)
 ```
 
-因為 `q=16` 且 `scale=4`，在 noiseless demo 裡 `phase[2]` 對應 predicate bit。
+因為 demo 使用 `q=16`、`p=4`，所以 `floor(p * rounded / q)` 的 predicate bit 對應 `rounded[2]`。
 
 這仍然不是完整 OpenFHE production decryption，因為 OpenFHE 真實 decrypt 還有更完整的 modulus/rounding/noise 處理。它的目的，是先把 LWE decryption arithmetic 的核心形狀展成 Boolean circuit：
 
@@ -250,7 +253,8 @@ g20: w28(predicate_msg) <- NOT(w27(gt_3))
 ...
 openfhe_lwe_ct_body_*     // b = encoded_msg + <a,hsk> mod q
 openfhe_lwe_phase_*       // phase = b - <a,hsk> mod q
-predicate_bit             // phase[2]
+openfhe_lwe_rounded_phase_* // phase + q/(2p)
+predicate_bit             // floor(p * rounded / q)
 ```
 
 這個格式的目的，是讓 GC backend 不需要解析字串公式，而是直接遍歷 gate list：
@@ -367,6 +371,84 @@ x
 hsk
 ```
 
+## Fixed-GC Evaluator Runtime Demo
+
+目前新增一條更接近最後目標的 fixed runtime 路徑：
+
+```text
+setup_fixed_gc_material:
+  建立 fixed-bound Circuit_g
+  將 b 固定為 selected-label constant
+  garble 成 fixed GC_f
+  寫出 circuit shape 與 GC artifact
+
+fixed_runtime_demo:
+  載入 a'
+  載入 one'
+  載入 fixed GC_f
+  不載入 hpk
+  不載入 hsk
+  不接受自由 b' input
+```
+
+執行方式：
+
+```bash
+./build_mock.sh --fixed-setup
+./build_mock.sh --fixed-runtime
+```
+
+fixed-bound circuit dump 在：
+
+```text
+artifacts/fixed_bound_circuit_g_demo.txt
+```
+
+這份 dump 的 public input 只剩：
+
+```text
+x_0, x_1, x_2, x_3
+```
+
+不再有：
+
+```text
+b_0, b_1, b_2, b_3
+```
+
+`fixed_b_i`、toy `hsk_i` 和 decryption constants 都是 fixed constant wires。dump 會用：
+
+```text
+<selected-label>
+```
+
+取代實際 constant bit，因為 evaluator runtime 需要的是 selected labels，不應該拿到 fixed `b` 或 `hsk` 的明文 bit。
+
+runtime 實際讀的是：
+
+```text
+artifacts/fixed_bound_circuit_shape.bin
+artifacts/fixed_bound_gc_artifact.bin
+artifacts/a_prime_mock_bits.txt
+artifacts/one_prime_mock_bits.txt
+```
+
+其中 `fixed_bound_circuit_shape.bin` 只保存 gate/wire shape，不保存 constant bit 值；`fixed_bound_gc_artifact.bin` 保存 selected labels 和 garbled tables。
+
+因此第一版 fixed runtime 的查詢介面是：
+
+```text
+GC_f(x')
+```
+
+不是：
+
+```text
+GC_f(x', b')
+```
+
+這避免 evaluator 把同一個 `x'` 拿去查不同 threshold，例如 `x <= 10'`、`x <= 11'`。
+
 ## 目前輸出的意義
 
 當 `a=3, b=7` 時，loop 會檢查：
@@ -388,13 +470,13 @@ hsk
 
 目前仍是 mock 或 demo 化的部分：
 
-1. `MOCK_OPENFHE` 的 ciphertext 只有一個 `.bit`，所以 GC input label encoding 目前是從 mock bit 直接取得。
-2. LWE decryption circuit 使用固定 demo key、固定 mask、固定 `q=16`，不是從真實 OpenFHE ciphertext 解析出來。
-3. decode 目前是 noiseless `phase[2]`，還沒有完整 OpenFHE rounding/noise handling。
-4. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
-5. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
-6. artifact 還沒有 serialization，所以 client setup 和 evaluator loop 還在同一個 executable 裡。
-7. `demo_keys/future_demo_fhe_key_material.json` 目前是固定 demo key material 記錄，不是 production OpenFHE key serialization。
+1. `MOCK_OPENFHE` 的 ciphertext 只有一個 `.bit`，所以 GC input label encoding 目前仍是從 mock bit 直接取得。
+2. fixed runtime 已經有 artifact serialization，但 mock runtime 使用的是 mock `a'`/`one'` bit material，不是真實 OpenFHE ciphertext fields。
+3. LWE decryption circuit 使用固定 demo key、固定 mask、固定 `q=16`，不是從真實 OpenFHE ciphertext 解析出來。
+4. decode 已加入 demo 版 `phase + q/(2p)` rounding shape，但仍未接真實 OpenFHE ciphertext fields 和 production 參數。
+5. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；但它尚未把真實 OpenFHE ciphertext bits 接到 GC input。
+6. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
+7. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 
 ## 下一步
 

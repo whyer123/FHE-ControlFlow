@@ -2,6 +2,46 @@
 #include "src/gc/openfhe_lwe_decryption_circuit.h"
 #include <stdexcept>
 
+namespace {
+
+WireId BuildLessOrEqualComparator(BooleanCircuitBuilder& builder,
+                                  const std::vector<WireId>& x_wires,
+                                  const std::vector<WireId>& bound_wires) {
+    auto not_bound =
+        builder.AddGate(BitGateKind::Not, {bound_wires[0]}, "not_b_0");
+    WireId greater =
+        builder.AddGate(BitGateKind::And, {not_bound, x_wires[0]}, "gt_0");
+
+    for (size_t i = 1; i < x_wires.size(); ++i) {
+        const auto idx = std::to_string(i);
+        not_bound = builder.AddGate(
+            BitGateKind::Not, {bound_wires[i]}, "not_b_" + idx);
+        auto generate = builder.AddGate(
+            BitGateKind::And, {not_bound, x_wires[i]}, "gen_" + idx);
+        auto xor_bits = builder.AddGate(
+            BitGateKind::Xor, {bound_wires[i], x_wires[i]}, "xor_" + idx);
+        auto equal_bits =
+            builder.AddGate(BitGateKind::Not, {xor_bits}, "eq_" + idx);
+        auto propagate = builder.AddGate(
+            BitGateKind::And, {equal_bits, greater}, "prop_" + idx);
+        greater = builder.AddGate(
+            BitGateKind::Xor, {generate, propagate}, "gt_" + idx);
+    }
+
+    return builder.AddGate(BitGateKind::Not, {greater}, "predicate_msg");
+}
+
+void AddPredicateOutput(BooleanCircuitBuilder& builder, WireId predicate_msg) {
+    auto decrypted_predicate =
+        OpenFHELWEDecryptionCircuit::BuildDemoPredicateDecrypt(builder,
+                                                               predicate_msg);
+    auto predicate = builder.AddGate(
+        BitGateKind::Output, {decrypted_predicate}, "predicate_bit");
+    builder.AddOutputWire(predicate);
+}
+
+} // namespace
+
 LWECiphertext ControlledRevealCircuit::EvalLessOrEqualPredicate(
     const std::vector<LWECiphertext>& x,
     const std::vector<LWECiphertext>& bound) {
@@ -59,25 +99,32 @@ BooleanCircuit ControlledRevealCircuit::DescribeLessOrEqualCircuit(size_t bit_le
         bound_wires.push_back(builder.AddInputWire("b_" + idx));
     }
 
-    auto not_bound = builder.AddGate(BitGateKind::Not, {bound_wires[0]}, "not_b_0");
-    WireId greater = builder.AddGate(BitGateKind::And, {not_bound, x_wires[0]}, "gt_0");
+    AddPredicateOutput(builder,
+                       BuildLessOrEqualComparator(builder, x_wires, bound_wires));
 
-    for (size_t i = 1; i < bit_length; ++i) {
-        const auto idx = std::to_string(i);
-        not_bound = builder.AddGate(BitGateKind::Not, {bound_wires[i]}, "not_b_" + idx);
-        auto generate = builder.AddGate(BitGateKind::And, {not_bound, x_wires[i]}, "gen_" + idx);
-        auto xor_bits = builder.AddGate(BitGateKind::Xor, {bound_wires[i], x_wires[i]}, "xor_" + idx);
-        auto equal_bits = builder.AddGate(BitGateKind::Not, {xor_bits}, "eq_" + idx);
-        auto propagate = builder.AddGate(BitGateKind::And, {equal_bits, greater}, "prop_" + idx);
-        greater = builder.AddGate(BitGateKind::Xor, {generate, propagate}, "gt_" + idx);
+    return builder.Build();
+}
+
+BooleanCircuit ControlledRevealCircuit::DescribeFixedBoundLessOrEqualCircuit(
+    size_t bit_length, uint64_t fixed_bound) const {
+    if (bit_length == 0) {
+        throw std::invalid_argument("Circuit bit length must be greater than zero.");
     }
 
-    auto predicate_msg = builder.AddGate(BitGateKind::Not, {greater}, "predicate_msg");
-    auto decrypted_predicate =
-        OpenFHELWEDecryptionCircuit::BuildDemoPredicateDecrypt(builder, predicate_msg);
-    auto predicate = builder.AddGate(
-        BitGateKind::Output, {decrypted_predicate}, "predicate_bit");
-    builder.AddOutputWire(predicate);
+    BooleanCircuitBuilder builder(
+        "g_fixed(c_x)=Dec(Eval([x<=fixed_b],c_x,fixed_b))", bit_length);
+    std::vector<WireId> x_wires;
+    std::vector<WireId> bound_wires;
+
+    for (size_t i = 0; i < bit_length; ++i) {
+        const auto idx = std::to_string(i);
+        x_wires.push_back(builder.AddInputWire("x_" + idx));
+        bound_wires.push_back(builder.AddConstantWire(
+            "fixed_b_" + idx, ((fixed_bound >> i) & 1U) != 0));
+    }
+
+    AddPredicateOutput(builder,
+                       BuildLessOrEqualComparator(builder, x_wires, bound_wires));
 
     return builder.Build();
 }

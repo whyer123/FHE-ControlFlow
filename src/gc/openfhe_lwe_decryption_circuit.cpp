@@ -58,8 +58,18 @@ WireId OpenFHELWEDecryptionCircuit::BuildDemoPredicateDecrypt(
     auto phase_bits = SubtractModulo(
         builder, ct_body_bits, recomputed_pad, "openfhe_lwe_phase");
 
-    // q=16 and scale=q/4=4 in this demo, so exact noiseless bit decoding is phase bit 2.
-    return phase_bits[2];
+    // OpenFHE LWE decrypt computes floor(p * (phase + q/(2p)) / q).
+    // For q=16 and p=4, the output bit is bit 2 after adding the rounding offset.
+    auto rounding_offset = ConstantBits(
+        builder,
+        kDemoModulus / (kDemoPlaintextModulus * 2),
+        "openfhe_lwe_rounding_offset");
+    auto rounding_carry_zero = builder.AddConstantWire(
+        "openfhe_lwe_rounding_carry_zero", false);
+    auto rounded_phase = AddModulo(
+        builder, phase_bits, rounding_offset, rounding_carry_zero,
+        "openfhe_lwe_rounded_phase");
+    return rounded_phase[2];
 }
 
 std::vector<WireId> OpenFHELWEDecryptionCircuit::ConstantBits(

@@ -27,7 +27,8 @@ void WriteWireList(std::ostringstream& out, const BooleanCircuit& circuit,
 
 } // namespace
 
-std::string BooleanCircuitToText(const BooleanCircuit& circuit) {
+std::string BooleanCircuitToText(const BooleanCircuit& circuit,
+                                 bool redact_constant_values) {
     std::ostringstream out;
     out << "# Boolean circuit dump\n";
     out << "name: " << circuit.name << "\n";
@@ -42,8 +43,13 @@ std::string BooleanCircuitToText(const BooleanCircuit& circuit) {
     out << "[constant_wires]\n";
     for (const auto& constant : SortedConstants(circuit)) {
         out << "  w" << constant.first << " "
-            << circuit.Wire(constant.first).name << " = "
-            << (constant.second ? 1 : 0) << "\n";
+            << circuit.Wire(constant.first).name << " = ";
+        if (redact_constant_values) {
+            out << "<selected-label>";
+        } else {
+            out << (constant.second ? 1 : 0);
+        }
+        out << "\n";
     }
     out << "\n";
 
@@ -70,10 +76,11 @@ std::string BooleanCircuitToText(const BooleanCircuit& circuit) {
 }
 
 void WriteBooleanCircuitText(const BooleanCircuit& circuit,
-                             const std::string& path) {
+                             const std::string& path,
+                             bool redact_constant_values) {
     std::ofstream file(path);
     if (!file) {
         throw std::runtime_error("Failed to open Boolean circuit dump path.");
     }
-    file << BooleanCircuitToText(circuit);
+    file << BooleanCircuitToText(circuit, redact_constant_values);
 }

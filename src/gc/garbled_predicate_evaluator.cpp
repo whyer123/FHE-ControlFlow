@@ -49,6 +49,44 @@ bool GarbledPredicateEvaluator::Evaluate(
 #endif
 }
 
+bool GarbledPredicateEvaluator::EvaluateFixedBound(
+    const std::vector<LWECiphertext>& x) {
+    if (x.size() != circuit_.input_bit_length) {
+        throw std::invalid_argument("GC input bit length does not match the circuit.");
+    }
+    if (circuit_.input_wires.size() != circuit_.input_bit_length) {
+        throw std::invalid_argument(
+            "Fixed-bound predicate circuit must expose only x_i input wires.");
+    }
+
+#if defined(MOCK_OPENFHE)
+    std::unordered_map<WireId, bool> input_bits;
+    for (size_t i = 0; i < circuit_.input_bit_length; ++i) {
+        input_bits[circuit_.input_wires[i]] = x[i].bit;
+    }
+
+#ifdef USE_EMP_GC
+    EmpGarbledCircuit gc;
+    auto decoded_outputs = gc.Evaluate(artifact_, circuit_, input_bits);
+#else
+    MinimalGarbledCircuit gc;
+    auto input_labels = gc.EncodeInputs(artifact_, input_bits);
+    auto output_labels = gc.EvaluateLabels(artifact_, input_labels);
+    auto decoded_outputs = gc.DecodeOutputs(artifact_, output_labels);
+#endif
+
+    if (decoded_outputs.size() != 1) {
+        throw std::invalid_argument("Predicate GC must produce exactly one output bit.");
+    }
+    return decoded_outputs.front();
+#else
+    (void)x;
+    throw std::runtime_error(
+        "Fixed-bound GarbledPredicateEvaluator needs serialized ciphertext-bit "
+        "inputs; currently implemented for MOCK_OPENFHE only.");
+#endif
+}
+
 PredicateGCArtifact GarbledPredicateEvaluator::ArtifactInfo(size_t bit_length) const {
     if (bit_length != circuit_.input_bit_length) {
         throw std::invalid_argument("ArtifactInfo bit length does not match the circuit.");

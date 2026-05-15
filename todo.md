@@ -9,18 +9,25 @@
 - 新增 `BooleanCircuit`，用 stable `WireId`、`GateId`、input wires、output wires 描述 `Circuit_g`。
 - 新增 minimal GC backend，產生 wire labels、garbled tables，並用 label flow 做 mock evaluation。
 - 新增 `GarbledPredicateEvaluator`，讓 mock demo loop 每一輪都直接 evaluate `Circuit_g` garbled artifact。
-- 新增 OpenFHE LWE-like decryption circuit：固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，展開 `b - <a,hsk> mod q` 和 bit decode。
+- 新增 OpenFHE LWE-like decryption circuit：固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`、`p=4`，展開 `b - <a,hsk> mod q`、`phase + q/(2p)` rounding 和 bit decode。
 - 新增 EMP-toolkit half-gates backend，Docker `gc_mock` 會安裝 EMP 並用 `USE_EMP_GC=1` 真實執行 EMP GC path。
 - 新增 `artifacts/circuit_g_demo.txt`，不用只靠 runtime stdout 也能檢查 `FHE.Dec(hsk,FHE.Eval(f,x'))` 的 Boolean circuit gate list。
 - 新增 `demo_keys/future_demo_fhe_key_material.json`，記錄目前 demo 使用的固定 hsk 與 `Enc(1)` 設計決策。
 - 新增 `gc.md`，用中文說明 controlled reveal、circuit 描述、EMP GC 和 demo leakage model。
+- 新增 fixed-bound GC path：`GC_f(x')`，不再把 `b'` 當 runtime free input。
+- 新增 `setup_fixed_gc_material`，預先輸出 fixed-bound circuit shape、GC artifact、mock `a'`/`one'` material。
+- 新增 `fixed_runtime_demo`，只載入 `a'`、`one'`、fixed `GC_f`，不載入 `hpk/hsk`，輸出 predicate sequence `1,1,1,1,1,0`。
+- 新增 `active_garbled_circuit_io` 與 `boolean_circuit_io`，讓 evaluator runtime 載入 serialized GC artifact 和 redacted circuit shape。
+- 新增 OpenFHE fixed material：`a_prime_bit_0..3`、`b_prime_bit_0..3`、`one_prime_integer_bit_0..3`。
+- 新增 `evaluator_runtime_material_check`，只載入 OpenFHE context/evaluation keys、`a'`、integer `one'`，做一次 encrypted add，確認 runtime 不需 `hpk/hsk`。
 
 ## 還差什麼
 
-- 對齊 OpenFHE production decrypt 的 rounding/noise handling，而不是目前 noiseless `phase[2]` decode。
+- 對齊 OpenFHE production decrypt 的真實 ciphertext fields、參數大小和 noise range；目前只有 toy 參數的 rounding shape。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
-- 設計 serialization：client 產生 `GC_f` artifact，evaluator 從檔案載入。
+- 把真實 OpenFHE ciphertext field bits 接到 fixed GC input，而不是目前 fixed runtime 的 mock `.bit` material。
 - 把真實 OpenFHE ciphertext bit/word serialization 接到 GC input，而不是目前的 `MOCK_OPENFHE` `.bit`。
-- 若 production 需要真正 public-key `hpk/hsk`，需要切到 OpenFHE PKE scheme 或確認 BinFHE public-key support；目前 BinFHE prototype 沒有 hpk serialization。
-- 把 demo 拆成 client setup 和 evaluator loop 兩個 executable。
+- 把真實 OpenFHE `hsk` 展成 `Circuit_g` constant/selected-label material；目前 GC 仍使用 toy 4-bit hsk。
+- 把 `b'` 的真實 OpenFHE ciphertext/eval material 固定進 GC，而不是目前用 fixed plaintext bound bits 做 mock comparator。
+- 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
 - 加測試：comparator correctness、increment correctness、BooleanCircuit evaluation、EMP GC label flow。

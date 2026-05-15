@@ -61,6 +61,37 @@ Encrypted loop iterations executed: 5
 
 這條 fixed runtime demo 目前仍使用 `MOCK_OPENFHE` bit material 連到 GC input；真實 OpenFHE ciphertext fields 尚未接進 GC input。
 
+## EvalBinGate Circuit Dump
+
+可以用下面指令直接看目前 `OpenFHE.EvalBinGate` 被展成 Boolean circuit 的樣子：
+
+```bash
+./build_mock.sh --evalbingate-circuit
+```
+
+輸出會包含：
+
+```text
+Dumped OpenFHE EvalBinGate Boolean circuits to artifacts
+bootstrap core status: placeholder
+and: 477 gates, 558 wires, dump=artifacts/openfhe_evalbingate_and_demo.txt
+or: 479 gates, 560 wires, dump=artifacts/openfhe_evalbingate_or_demo.txt
+xor: 617 gates, 699 wires, dump=artifacts/openfhe_evalbingate_xor_demo.txt
+xnor: 618 gates, 700 wires, dump=artifacts/openfhe_evalbingate_xnor_demo.txt
+```
+
+這些 dump 的意義：
+
+```text
+lhs_a_i_bit_j / lhs_b_bit_j: 第一個 LWE ciphertext 的 fields
+rhs_a_i_bit_j / rhs_b_bit_j: 第二個 LWE ciphertext 的 fields
+openfhe_evalbingate_prebootstrap_*: OpenFHE EvalBinGate 前段的 ciphertext add/double
+openfhe_bootstrap_placeholder_*: 尚未正式展開的 bootstrap core placeholder
+evalbingate_out_*: 輸出的 LWE ciphertext fields
+```
+
+目前這不是正式版 `EvalBinGate`。已完成的是 LWE-shaped circuit interface、pre-bootstrap arithmetic、固定 demo hsk selected-label constants、以及 output ciphertext shape；還沒完成的是真正 OpenFHE `BootstrapGateCore` 的 blind rotation/RGSW 展開。
+
 ## Demo 目標
 
 demo 展示的是一個 controlled reveal 的 encrypted loop：

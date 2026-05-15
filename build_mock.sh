@@ -87,6 +87,20 @@ build_fixed_runtime() {
     ./fixed_runtime_demo "${FIXED_GC_ARTIFACT_DIR}"
 }
 
+build_evalbingate_circuit_dump() {
+    g++ -std=c++17 -DMOCK_OPENFHE -I. \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_export.cpp \
+        src/gc/openfhe_lwe_decryption_circuit.cpp \
+        src/gc/openfhe_eval_bin_gate_circuit.cpp \
+        tools/dump_openfhe_eval_bin_gate_circuit.cpp \
+        -o dump_openfhe_eval_bin_gate_circuit
+
+    echo "Build successful! Dumping OpenFHE EvalBinGate Boolean circuits..."
+    echo "----------------------------------------"
+    ./dump_openfhe_eval_bin_gate_circuit "${FIXED_GC_ARTIFACT_DIR}"
+}
+
 case "${MODE}" in
     --legacy)
         build_legacy_demo
@@ -100,6 +114,9 @@ case "${MODE}" in
     --fixed-all)
         build_fixed_setup
         build_fixed_runtime
+        ;;
+    --evalbingate-circuit)
+        build_evalbingate_circuit_dump
         ;;
     *)
         echo "unknown build_mock.sh mode: ${MODE}" >&2

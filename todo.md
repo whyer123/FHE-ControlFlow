@@ -30,6 +30,7 @@
 - 新增 `export_openfhe_eval_key_material`，可把已生成的 OpenFHE `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays，供後續 standalone `.cpp` / GC lowering 使用。
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
 - 對齊 OpenFHE `BootstrapGateCore` 的 gate constants 與 accumulator sparse LUT 初始化：`AND=448`、`XOR=384`，使用 `[lb, ub)` range 和 `Q/(2p)+1` / `Q-Q/(2p)-1` message mapping。
+- 新增 CGGI bootstrap primitives：signed digit decomposition、negacyclic monomial multiplication、negacyclic polynomial multiplication、coefficient-domain external product。
 
 ## 還差什麼
 
@@ -38,6 +39,7 @@
 - 把 `OpenFHEEvalBinGateCircuit` dump 裡的 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前 standalone source 已對齊 gate constants / coefficient-domain accumulator init，但 dump 工具仍只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
 - 把 `openfhe_controlled_reveal_reference.cpp` 裡的 `ExternalProductCGGI`、`EvalAccCGGI`、`SwitchCTtoqn` 補成 OpenFHE 1.5.0 bit-accurate arithmetic；目前已移除 semantic shortcut，但 bootstrap/key-switch internals 仍是結構骨架。
 - 把 `export_openfhe_eval_key_material` 產生的 flat words 精確接回 `EvalAccCGGI` / `SwitchCTtoqn` 的索引 layout。
+- 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
 - 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
 - 把真實 OpenFHE ciphertext field bits 接到 fixed GC input，而不是目前 fixed runtime 的 mock `.bit` material。

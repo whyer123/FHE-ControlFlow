@@ -22,12 +22,12 @@
 - 新增 `evaluator_runtime_material_check`，只載入 OpenFHE context/evaluation keys、`a'`、integer `one'`，做一次 encrypted add，確認 runtime 不需 `hpk/hsk`。
 - 新增 `OpenFHEEvalBinGateCircuit`，把 demo LWE ciphertext fields、OpenFHE additive pre-bootstrap step、固定 demo `hsk` selected-label constants 展開成 Boolean circuit。
 - 新增 `dump_openfhe_eval_bin_gate_circuit` 與 `./build_mock.sh --evalbingate-circuit`，可輸出 AND/OR/XOR/XNOR 的 `openfhe_evalbingate_*_demo.txt` circuit dump。
-- 新增 `src/gc/openfhe_controlled_reveal_reference.h`，用單檔 OpenFHE lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、path、print 或 demo key dependency。
+- 新增 `src/gc/openfhe_controlled_reveal_reference.cpp`，用單檔 OpenFHE lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、path、print 或 demo key dependency。
 - 新增 `openfhe_controlled_reveal_reference_test`，用 OpenFHE `STD128` 在記憶體中產生正式 key/material 驗證 reference logic。
 
 ## 還差什麼
 
-- 把 `src/gc/openfhe_controlled_reveal_reference.h` 的完整邏輯 lowering 成 Boolean circuit。
+- 把 `src/gc/openfhe_controlled_reveal_reference.cpp` 的完整邏輯 lowering 成 Boolean circuit。
 - 把目前 transitional fixed-bound `GC_f(x')` runtime 改回最終需要的 `GC_f(x', b')` runtime contract。
 - 把 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
 - 對齊 OpenFHE production decrypt 的真實 ciphertext fields、參數大小和 noise range；目前只有 toy 參數的 rounding shape。

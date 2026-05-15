@@ -1,4 +1,4 @@
-#include "src/gc/openfhe_controlled_reveal_reference.h"
+#include "src/gc/openfhe_controlled_reveal_reference.cpp"
 
 #include "binfhecontext.h"
 

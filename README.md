@@ -29,15 +29,16 @@ one lowering-ready OpenFHE reference logic file for the exact target:
 Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
 ```
 
-The source is:
+The single-file source is:
 
 ```text
-src/gc/openfhe_controlled_reveal_reference.h
+src/gc/openfhe_controlled_reveal_reference.cpp
 ```
 
 This file has no `main`, no filesystem paths, no serialization, and no
-printing. `hsk`, `x'`, and `b'` are explicit function inputs, so the next
-lowering step can replace those values with Boolean circuit wires/constants.
+printing. `hsk`, `x'`, `b'`, the encrypted comparator, the controlled decrypt,
+and the loop add helper are all in one place so the next lowering step can
+replace them with Boolean circuit wires/constants.
 
 The verification target uses OpenFHE `STD128` in memory, not the repo-local
 demo key directory:

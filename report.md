@@ -7,7 +7,7 @@
 現在第一步改成一個準備 lowering 成 Boolean circuit 的單檔邏輯：
 
 ```text
-src/gc/openfhe_controlled_reveal_reference.h
+src/gc/openfhe_controlled_reveal_reference.cpp
 ```
 
 這個檔案沒有：
@@ -20,13 +20,17 @@ print/stdout
 demo key directory
 ```
 
-它只保留要轉成 Boolean circuit 的核心邏輯：
+它把要轉成 Boolean circuit 的核心邏輯集中在同一檔：
 
 ```text
 Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
 ```
 
+另外也把 loop update helper `x' <- x' + one'` 放在同一檔，避免現在看 reference flow 時還要跳去其他檔案。
+
 介面上 `hsk`、`x'`、`b'` 都是外部傳入，不在函式裡用路徑載入。之後轉 GC 時，`hsk` 會變成固定 secret constants / selected labels，`x'` 和 `b'` 會變成 runtime input wires。
+
+目前測試是直接 include 這個 `.cpp` 到 C++ test target。
 
 測試 target 使用 OpenFHE `STD128` 在記憶體中產生正式 key/material，不使用 `demo_keys/openfhe_binfhe_demo_keypair`：
 

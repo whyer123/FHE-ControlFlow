@@ -35,13 +35,15 @@ The single-file source is:
 src/gc/openfhe_controlled_reveal_reference.cpp
 ```
 
-This file has no `main`, no filesystem paths, no serialization, and no
-printing. `hsk`, `x'`, `b'`, the encrypted comparator, the controlled decrypt,
-and the loop add helper are all in one place so the next lowering step can
-replace them with Boolean circuit wires/constants.
+This file has no `main`, no includes, no OpenFHE runtime types, no filesystem
+paths, no serialization, and no printing. `FIXED_HSK`, local LWE ciphertext
+structs, the encrypted comparator, and the controlled decrypt are all in one
+place so the next lowering step can replace them with Boolean circuit
+wires/constants. It intentionally does not include the loop `add one` helper.
 
-The verification target uses OpenFHE `STD128` in memory, not the repo-local
-demo key directory:
+The lowering source uses STD128-shaped LWE dimensions and modulus constants
+with a fixed in-file ternary `FIXED_HSK`. The verification target does not link
+OpenFHE or use the repo-local demo key directory:
 
 ```bash
 cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release

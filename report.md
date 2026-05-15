@@ -18,6 +18,7 @@ filesystem path
 serialization
 print/stdout
 demo key directory
+OpenFHE include/runtime types
 ```
 
 它把要轉成 Boolean circuit 的核心邏輯集中在同一檔：
@@ -26,13 +27,13 @@ demo key directory
 Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
 ```
 
-另外也把 loop update helper `x' <- x' + one'` 放在同一檔，避免現在看 reference flow 時還要跳去其他檔案。
+這一檔只保留 `GC_f` 需要的 controlled reveal，不放 loop update helper `x' <- x' + one'`。
 
-介面上 `hsk`、`x'`、`b'` 都是外部傳入，不在函式裡用路徑載入。之後轉 GC 時，`hsk` 會變成固定 secret constants / selected labels，`x'` 和 `b'` 會變成 runtime input wires。
+私鑰已經固定在同一檔的 `FIXED_HSK`。之後轉 GC 時，`FIXED_HSK` 會變成 fixed secret constants / selected labels，`x'` 和 `b'` 會變成 runtime input wires。
 
 目前測試是直接 include 這個 `.cpp` 到 C++ test target。
 
-測試 target 使用 OpenFHE `STD128` 在記憶體中產生正式 key/material，不使用 `demo_keys/openfhe_binfhe_demo_keypair`：
+這個 source 使用 STD128-shaped LWE dimension/modulus constants，但測試 target 不 link OpenFHE、不使用 `demo_keys/openfhe_binfhe_demo_keypair`：
 
 ```bash
 cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release

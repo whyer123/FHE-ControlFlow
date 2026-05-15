@@ -2,6 +2,47 @@
 
 這份 report 專門說明目前 `examples/demo_loop.cpp` 的 demo 在做什麼，以及執行輸出的每一段代表什麼。
 
+## OpenFHE reference program
+
+現在第一步先放了一個單檔程式版，讓你可以檢查邏輯：
+
+```text
+tools/openfhe_controlled_reveal_reference.cpp
+```
+
+它寫的不是：
+
+```text
+GC_dec(c')
+```
+
+而是直接把 predicate evaluation 和 controlled reveal 綁在同一個流程：
+
+```text
+Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
+```
+
+執行方式：
+
+```bash
+cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release
+cmake --build build-local --target openfhe_controlled_reveal_reference --parallel 2
+./build-local/openfhe_controlled_reveal_reference demo_keys/openfhe_binfhe_demo_keypair
+```
+
+預期輸出包含：
+
+```text
+Reference expression: Dec_hsk(OpenFHE.Eval([x <= b], x', b'))
+OpenFHE EvalBinGate is inside the predicate computation.
+hpk was not loaded by this reference program.
+hsk was loaded only to perform the final controlled reveal.
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
+
+這個檔案的用途是先確認正式邏輯；下一步才把同一段邏輯 lowering 成 Boolean circuit。
+
 ## Fixed Runtime Demo
 
 目前另有一個更接近最後目標的 evaluator-runtime-only demo：

@@ -22,8 +22,8 @@
 - 新增 `evaluator_runtime_material_check`，只載入 OpenFHE context/evaluation keys、`a'`、integer `one'`，做一次 encrypted add，確認 runtime 不需 `hpk/hsk`。
 - 新增 `OpenFHEEvalBinGateCircuit`，把 demo LWE ciphertext fields、OpenFHE additive pre-bootstrap step、固定 demo `hsk` selected-label constants 展開成 Boolean circuit。
 - 新增 `dump_openfhe_eval_bin_gate_circuit` 與 `./build_mock.sh --evalbingate-circuit`，可輸出 AND/OR/XOR/XNOR 的 `openfhe_evalbingate_*_demo.txt` circuit dump。
-- 新增 `src/gc/openfhe_controlled_reveal_reference.cpp`，用單檔 OpenFHE lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、path、print 或 demo key dependency。
-- 新增 `openfhe_controlled_reveal_reference_test`，用 OpenFHE `STD128` 在記憶體中產生正式 key/material 驗證 reference logic。
+- 新增 `src/gc/openfhe_controlled_reveal_reference.cpp`，用單檔 lowering-ready logic 明確寫出 `Dec_hsk(OpenFHE.Eval([x <= b], x', b'))`，沒有 `main`、include、OpenFHE runtime type、path、print 或 demo key dependency。
+- 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接驗證單檔 lowering source 的 fixed-hsk controlled reveal。
 
 ## 還差什麼
 

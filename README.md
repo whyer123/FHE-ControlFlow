@@ -20,6 +20,44 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 In `MOCK_OPENFHE` mode, the Docker `gc_mock` target now uses an EMP-toolkit half-gates garbled-circuit artifact on every loop iteration. The in-repo minimal GC backend remains available as a fallback when `USE_EMP_GC` is not set.
 
+## Fixed-GC Evaluator Runtime Demo
+
+The fixed-runtime path models the first offline demo target:
+
+```text
+Client/setup side, precomputed:
+  a' = Enc(a)
+  fixed_b material
+  one' = Enc(1)
+  GC_f = Garble(Dec_hsk(Eval([x <= fixed_b], x')))
+
+Evaluator runtime:
+  load a', one', evaluation material, fixed GC_f
+  do not load hpk
+  do not load hsk
+  do not accept free b' input
+```
+
+For fast local validation:
+
+```bash
+./build_mock.sh --fixed-setup
+./build_mock.sh --fixed-runtime
+```
+
+The fixed circuit dump is written to `artifacts/fixed_bound_circuit_g_demo.txt`. Its public inputs are only `x_i`; fixed `b` and decryption constants are represented as selected-label constants. The evaluator runtime loads `artifacts/fixed_bound_circuit_shape.bin` and `artifacts/fixed_bound_gc_artifact.bin`, not `hpk` or `hsk`.
+
+To verify the real OpenFHE runtime material boundary:
+
+```bash
+cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release
+cmake --build build-local --target prepare_openfhe_constants evaluator_runtime_material_check --parallel 2
+./build-local/prepare_openfhe_constants demo_keys/openfhe_binfhe_demo_keypair
+./build-local/evaluator_runtime_material_check demo_keys/openfhe_binfhe_demo_keypair
+```
+
+`evaluator_runtime_material_check` loads only context/evaluation keys plus prepared ciphertext bits for `a'` and integer `one'`, then performs one encrypted state update with OpenFHE `EvalBinGate`.
+
 See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
 
 See `report.md` for a Chinese explanation of the demo loop output.
@@ -41,10 +79,11 @@ docker-compose up --build
 docker-compose run --rm gc_mock
 ```
 
-`gc_mock` installs EMP-toolkit in the image and runs `build_mock.sh` with `USE_EMP_GC=1`, so the predicate path should print:
+`gc_mock` installs EMP-toolkit in the image and runs the fixed setup/runtime path with `USE_EMP_GC=1`, so the output should include:
 
 ```text
-Evaluator predicate path: EMP half-gates GC artifact
+Evaluator runtime input policy: fixed GC_f(x')
+Evaluator runtime did not load hpk or hsk
 ```
 
 跑完整 OpenFHE demo：

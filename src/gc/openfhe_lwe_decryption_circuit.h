@@ -10,7 +10,9 @@ public:
     static constexpr size_t kDemoDimension = 4;
     static constexpr size_t kDemoModulusBits = 4;
     static constexpr uint64_t kDemoModulus = 1ULL << kDemoModulusBits;
-    static constexpr uint64_t kDemoPlaintextScale = 4;
+    static constexpr uint64_t kDemoPlaintextModulus = 4;
+    static constexpr uint64_t kDemoPlaintextScale =
+        kDemoModulus / kDemoPlaintextModulus;
 
     static const std::array<bool, kDemoDimension>& FixedDemoSecretKey();
     static const std::array<uint64_t, kDemoDimension>& FixedDemoMask();

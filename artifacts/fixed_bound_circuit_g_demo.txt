@@ -1,83 +1,83 @@
 # Boolean circuit dump
-name: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
+name: g_fixed(c_x)=Dec(Eval([x<=fixed_b],c_x,fixed_b))
 input_bit_length: 4
 wire_count: 415
 gate_count: 366
 
 [public_inputs]
   w0 x_0
-  w1 b_0
   w2 x_1
-  w3 b_1
   w4 x_2
-  w5 b_2
   w6 x_3
-  w7 b_3
 
 [constant_wires]
-  w29 hardcoded_openfhe_lwe_hsk_0 = 1
-  w30 openfhe_lwe_a_0_bit_0 = 1
-  w31 openfhe_lwe_a_0_bit_1 = 1
-  w32 openfhe_lwe_a_0_bit_2 = 0
-  w33 openfhe_lwe_a_0_bit_3 = 0
-  w34 hardcoded_openfhe_lwe_hsk_1 = 0
-  w35 openfhe_lwe_a_1_bit_0 = 1
-  w36 openfhe_lwe_a_1_bit_1 = 0
-  w37 openfhe_lwe_a_1_bit_2 = 1
-  w38 openfhe_lwe_a_1_bit_3 = 0
-  w39 hardcoded_openfhe_lwe_hsk_2 = 1
-  w40 openfhe_lwe_a_2_bit_0 = 0
-  w41 openfhe_lwe_a_2_bit_1 = 1
-  w42 openfhe_lwe_a_2_bit_2 = 1
-  w43 openfhe_lwe_a_2_bit_3 = 0
-  w44 hardcoded_openfhe_lwe_hsk_3 = 1
-  w45 openfhe_lwe_a_3_bit_0 = 1
-  w46 openfhe_lwe_a_3_bit_1 = 0
-  w47 openfhe_lwe_a_3_bit_2 = 0
-  w48 openfhe_lwe_a_3_bit_3 = 0
-  w49 openfhe_lwe_dec_pad_zero_bit_0 = 0
-  w50 openfhe_lwe_dec_pad_zero_bit_1 = 0
-  w51 openfhe_lwe_dec_pad_zero_bit_2 = 0
-  w52 openfhe_lwe_dec_pad_zero_bit_3 = 0
-  w53 openfhe_lwe_dec_pad_carry_zero = 0
-  w182 openfhe_lwe_encoded_msg_zero_bit_0 = 0
-  w183 openfhe_lwe_encoded_msg_zero_bit_1 = 0
-  w184 openfhe_lwe_encoded_msg_zero_bit_2 = 0
-  w185 openfhe_lwe_encoded_msg_zero_bit_3 = 0
-  w186 openfhe_lwe_eval_carry_zero = 0
-  w215 openfhe_lwe_recomputed_pad_zero_bit_0 = 0
-  w216 openfhe_lwe_recomputed_pad_zero_bit_1 = 0
-  w217 openfhe_lwe_recomputed_pad_zero_bit_2 = 0
-  w218 openfhe_lwe_recomputed_pad_zero_bit_3 = 0
-  w219 openfhe_lwe_recomputed_pad_carry_zero = 0
-  w352 openfhe_lwe_phase_carry_one = 1
-  w381 openfhe_lwe_rounding_offset_bit_0 = 0
-  w382 openfhe_lwe_rounding_offset_bit_1 = 1
-  w383 openfhe_lwe_rounding_offset_bit_2 = 0
-  w384 openfhe_lwe_rounding_offset_bit_3 = 0
-  w385 openfhe_lwe_rounding_carry_zero = 0
+  w1 fixed_b_0 = <selected-label>
+  w3 fixed_b_1 = <selected-label>
+  w5 fixed_b_2 = <selected-label>
+  w7 fixed_b_3 = <selected-label>
+  w29 hardcoded_openfhe_lwe_hsk_0 = <selected-label>
+  w30 openfhe_lwe_a_0_bit_0 = <selected-label>
+  w31 openfhe_lwe_a_0_bit_1 = <selected-label>
+  w32 openfhe_lwe_a_0_bit_2 = <selected-label>
+  w33 openfhe_lwe_a_0_bit_3 = <selected-label>
+  w34 hardcoded_openfhe_lwe_hsk_1 = <selected-label>
+  w35 openfhe_lwe_a_1_bit_0 = <selected-label>
+  w36 openfhe_lwe_a_1_bit_1 = <selected-label>
+  w37 openfhe_lwe_a_1_bit_2 = <selected-label>
+  w38 openfhe_lwe_a_1_bit_3 = <selected-label>
+  w39 hardcoded_openfhe_lwe_hsk_2 = <selected-label>
+  w40 openfhe_lwe_a_2_bit_0 = <selected-label>
+  w41 openfhe_lwe_a_2_bit_1 = <selected-label>
+  w42 openfhe_lwe_a_2_bit_2 = <selected-label>
+  w43 openfhe_lwe_a_2_bit_3 = <selected-label>
+  w44 hardcoded_openfhe_lwe_hsk_3 = <selected-label>
+  w45 openfhe_lwe_a_3_bit_0 = <selected-label>
+  w46 openfhe_lwe_a_3_bit_1 = <selected-label>
+  w47 openfhe_lwe_a_3_bit_2 = <selected-label>
+  w48 openfhe_lwe_a_3_bit_3 = <selected-label>
+  w49 openfhe_lwe_dec_pad_zero_bit_0 = <selected-label>
+  w50 openfhe_lwe_dec_pad_zero_bit_1 = <selected-label>
+  w51 openfhe_lwe_dec_pad_zero_bit_2 = <selected-label>
+  w52 openfhe_lwe_dec_pad_zero_bit_3 = <selected-label>
+  w53 openfhe_lwe_dec_pad_carry_zero = <selected-label>
+  w182 openfhe_lwe_encoded_msg_zero_bit_0 = <selected-label>
+  w183 openfhe_lwe_encoded_msg_zero_bit_1 = <selected-label>
+  w184 openfhe_lwe_encoded_msg_zero_bit_2 = <selected-label>
+  w185 openfhe_lwe_encoded_msg_zero_bit_3 = <selected-label>
+  w186 openfhe_lwe_eval_carry_zero = <selected-label>
+  w215 openfhe_lwe_recomputed_pad_zero_bit_0 = <selected-label>
+  w216 openfhe_lwe_recomputed_pad_zero_bit_1 = <selected-label>
+  w217 openfhe_lwe_recomputed_pad_zero_bit_2 = <selected-label>
+  w218 openfhe_lwe_recomputed_pad_zero_bit_3 = <selected-label>
+  w219 openfhe_lwe_recomputed_pad_carry_zero = <selected-label>
+  w352 openfhe_lwe_phase_carry_one = <selected-label>
+  w381 openfhe_lwe_rounding_offset_bit_0 = <selected-label>
+  w382 openfhe_lwe_rounding_offset_bit_1 = <selected-label>
+  w383 openfhe_lwe_rounding_offset_bit_2 = <selected-label>
+  w384 openfhe_lwe_rounding_offset_bit_3 = <selected-label>
+  w385 openfhe_lwe_rounding_carry_zero = <selected-label>
 
 [outputs]
   w414 predicate_bit
 
 [gates]
-  g0: w8(not_b_0) <- NOT(w1(b_0))
+  g0: w8(not_b_0) <- NOT(w1(fixed_b_0))
   g1: w9(gt_0) <- AND(w8(not_b_0), w0(x_0))
-  g2: w10(not_b_1) <- NOT(w3(b_1))
+  g2: w10(not_b_1) <- NOT(w3(fixed_b_1))
   g3: w11(gen_1) <- AND(w10(not_b_1), w2(x_1))
-  g4: w12(xor_1) <- XOR(w3(b_1), w2(x_1))
+  g4: w12(xor_1) <- XOR(w3(fixed_b_1), w2(x_1))
   g5: w13(eq_1) <- NOT(w12(xor_1))
   g6: w14(prop_1) <- AND(w13(eq_1), w9(gt_0))
   g7: w15(gt_1) <- XOR(w11(gen_1), w14(prop_1))
-  g8: w16(not_b_2) <- NOT(w5(b_2))
+  g8: w16(not_b_2) <- NOT(w5(fixed_b_2))
   g9: w17(gen_2) <- AND(w16(not_b_2), w4(x_2))
-  g10: w18(xor_2) <- XOR(w5(b_2), w4(x_2))
+  g10: w18(xor_2) <- XOR(w5(fixed_b_2), w4(x_2))
   g11: w19(eq_2) <- NOT(w18(xor_2))
   g12: w20(prop_2) <- AND(w19(eq_2), w15(gt_1))
   g13: w21(gt_2) <- XOR(w17(gen_2), w20(prop_2))
-  g14: w22(not_b_3) <- NOT(w7(b_3))
+  g14: w22(not_b_3) <- NOT(w7(fixed_b_3))
   g15: w23(gen_3) <- AND(w22(not_b_3), w6(x_3))
-  g16: w24(xor_3) <- XOR(w7(b_3), w6(x_3))
+  g16: w24(xor_3) <- XOR(w7(fixed_b_3), w6(x_3))
   g17: w25(eq_3) <- NOT(w24(xor_3))
   g18: w26(prop_3) <- AND(w25(eq_3), w21(gt_2))
   g19: w27(gt_3) <- XOR(w23(gen_3), w26(prop_3))

@@ -36,9 +36,9 @@ ENV USE_EMP_GC=1
 WORKDIR /app
 COPY . .
 
-RUN ./build_mock.sh
+RUN ./build_mock.sh --fixed-all
 
-CMD ["./demo_mock"]
+CMD ["./build_mock.sh", "--fixed-all"]
 
 # Full OpenFHE target for testing with the real BinFHE dependency.
 FROM base AS openfhe-runtime

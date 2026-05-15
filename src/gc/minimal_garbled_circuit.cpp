@@ -48,8 +48,8 @@ GarbledCircuitArtifact MinimalGarbledCircuit::Garble(
     artifact.input_wires = circuit.input_wires;
     artifact.output_wires = circuit.output_wires;
 
-    std::random_device random_device;
-    std::mt19937_64 rng(random_device());
+    std::mt19937_64 rng(StableHash64(circuit.name + "|" +
+                                      std::to_string(circuit.gates.size())));
     std::unordered_map<WireId, WireLabels> wire_labels;
 
     for (const auto& wire : circuit.wires) {

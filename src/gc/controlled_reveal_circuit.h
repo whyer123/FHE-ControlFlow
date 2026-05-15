@@ -24,6 +24,8 @@ public:
     PredicateGCArtifact ArtifactInfo(size_t bit_length) const override;
 
     BooleanCircuit DescribeLessOrEqualCircuit(size_t bit_length) const;
+    BooleanCircuit DescribeFixedBoundLessOrEqualCircuit(
+        size_t bit_length, uint64_t fixed_bound) const;
 
 private:
     FHEContextWrapper& fhe_ctx;

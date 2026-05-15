@@ -25,6 +25,22 @@
     "switch_key": "demo_keys/openfhe_binfhe_demo_keypair/eval_switch_key.bin"
   },
   "encrypted_constants_for_future_demo": {
+    "a_prime": {
+      "plaintext": 3,
+      "bit_length": 4,
+      "owner": "client setup",
+      "consumer": "evaluator runtime",
+      "real_openfhe_binary_prefix": "demo_keys/openfhe_binfhe_demo_keypair/a_prime_bit_",
+      "note": "Four LWE ciphertext bit files are prepared and verified during setup."
+    },
+    "b_prime": {
+      "plaintext": 7,
+      "bit_length": 4,
+      "owner": "client setup",
+      "consumer": "fixed GC setup material",
+      "real_openfhe_binary_prefix": "demo_keys/openfhe_binfhe_demo_keypair/b_prime_bit_",
+      "runtime_decision": "b_prime is not a free evaluator runtime input in the fixed-bound demo."
+    },
     "one_prime": {
       "plaintext": 1,
       "bit_length": 4,
@@ -32,8 +48,16 @@
       "consumer": "evaluator loop",
       "usage": "x_prime <- FHE.Add(x_prime, one_prime)",
       "real_openfhe_json": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.json",
-      "real_openfhe_binary": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.bin"
+      "real_openfhe_binary": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_lwe_ciphertext.bin",
+      "real_openfhe_integer_binary_prefix": "demo_keys/openfhe_binfhe_demo_keypair/one_prime_integer_bit_"
     }
+  },
+  "fixed_gc_runtime_artifacts": {
+    "circuit_dump": "artifacts/fixed_bound_circuit_g_demo.txt",
+    "circuit_shape": "artifacts/fixed_bound_circuit_shape.bin",
+    "gc_artifact": "artifacts/fixed_bound_gc_artifact.bin",
+    "runtime_interface": "GC_f(x_prime)",
+    "runtime_forbidden_inputs": ["hpk", "hsk", "free b_prime"]
   },
   "next_step_for_real_key_files": "Expand the generated real OpenFHE hsk and ciphertext layout into Circuit_g, replacing the current toy 4-bit hsk circuit."
 }

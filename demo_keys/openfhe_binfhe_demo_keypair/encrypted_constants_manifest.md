@@ -1,6 +1,14 @@
 # OpenFHE Demo Encrypted Constants
 
-This directory includes fixed encrypted constants for the offline loop demo.
+This directory includes fixed encrypted endpoints and constants for the offline loop demo.
+
+## Fixed integer material
+
+- Demo bit length: `4`
+- `a = 3`: `a_prime_bit_0..3_lwe_ciphertext.*`
+- `b = 7`: `b_prime_bit_0..3_lwe_ciphertext.*`
+- Integer `one' = Enc(1)`: `one_prime_integer_bit_0..3_lwe_ciphertext.*`
+- Verification: every bit was checked with `hsk` during setup.
 
 ## one_prime
 
@@ -16,4 +24,4 @@ Evaluator loop usage:
 x' <- FHE.Add(x', one')
 ```
 
-The evaluator should receive `one'` as a prepared ciphertext and does not need `hpk` to encrypt the constant itself.
+The evaluator should receive integer `one'` as prepared ciphertext bits and does not need `hpk` to encrypt the constant itself. In the fixed-bound GC runtime, `b'` is setup material for `GC_f`; it is not a free runtime input.

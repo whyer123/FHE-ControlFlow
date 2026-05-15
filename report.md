@@ -2,6 +2,65 @@
 
 這份 report 專門說明目前 `examples/demo_loop.cpp` 的 demo 在做什麼，以及執行輸出的每一段代表什麼。
 
+## Fixed Runtime Demo
+
+目前另有一個更接近最後目標的 evaluator-runtime-only demo：
+
+```bash
+./build_mock.sh --fixed-setup
+./build_mock.sh --fixed-runtime
+```
+
+`--fixed-setup` 是 setup/client 端預先工作，會建立：
+
+```text
+artifacts/fixed_bound_circuit_g_demo.txt
+artifacts/fixed_bound_circuit_shape.bin
+artifacts/fixed_bound_gc_artifact.bin
+artifacts/a_prime_mock_bits.txt
+artifacts/one_prime_mock_bits.txt
+```
+
+`--fixed-runtime` 只展示 evaluator runtime：
+
+```text
+x' = a'
+while true:
+    cond = GC_f(x')
+    if cond == 0:
+        stop
+    x' = FHE.Add(x', one')
+```
+
+runtime 輸出：
+
+```text
+Evaluator runtime input policy: fixed GC_f(x')
+Evaluator runtime loaded only a', one', evaluation material, and fixed GC_f
+Evaluator runtime did not load hpk or hsk
+```
+
+意思是這條 demo path 不載入 `hpk`、不載入 `hsk`，也不接受自由的 `b'` input。`b` 已經在 setup 階段固定進 GC artifact 的 selected labels。
+
+predicate sequence 仍是：
+
+```text
+3 <= 7 -> 1
+4 <= 7 -> 1
+5 <= 7 -> 1
+6 <= 7 -> 1
+7 <= 7 -> 1
+8 <= 7 -> 0
+```
+
+所以輸出：
+
+```text
+Encrypted loop iterations executed: 5
+```
+
+這條 fixed runtime demo 目前仍使用 `MOCK_OPENFHE` bit material 連到 GC input；真實 OpenFHE ciphertext fields 尚未接進 GC input。
+
 ## Demo 目標
 
 demo 展示的是一個 controlled reveal 的 encrypted loop：
@@ -100,7 +159,7 @@ b' = [b_0', b_1', b_2', b_3']
 ```text
 Evaluator predicate path: EMP half-gates GC artifact
 GC artifact name: g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
-GC artifact gate count: 338
+GC artifact gate count: 366
 Public input label pairs: 8
 Hardcoded secret/constant labels: 36
 Circuit_g constant wires: 36
@@ -118,7 +177,7 @@ EMP transcript blocks: 321
 g(c_x,c_b)=Dec(Eval([x<=b],c_x,c_b))
 ```
 
-`GC artifact gate count: 338` 表示 `Circuit_g` 目前在 4-bit demo 參數下有 338 個 Boolean gates。這個數字會隨 bit length、LWE dimension、modulus bit width、decode logic 變動。
+`GC artifact gate count: 366` 表示 `Circuit_g` 目前在 4-bit demo 參數下有 366 個 Boolean gates。這個數字會隨 bit length、LWE dimension、modulus bit width、decode logic 變動。
 
 `Public input label pairs: 8` 來自 4-bit `x'` 和 4-bit `b'`：
 
@@ -155,7 +214,7 @@ evaluator 可以使用這些 labels evaluate GC，但不會直接知道它們對
 ```text
 g0: w8(not_b_0) <- NOT(w1(b_0))
 ...
-g337: w381(predicate_bit) <- OUTPUT(w368(openfhe_lwe_phase_sum_2))
+g365: w414(predicate_bit) <- OUTPUT(w401(openfhe_lwe_rounded_phase_sum_2))
 ```
 
 意義：

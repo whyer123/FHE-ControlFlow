@@ -2,6 +2,8 @@
 build/
 build-local/
 demo_mock
+fixed_runtime_demo
+setup_fixed_gc_material
 *.o
 *.a
 *.so

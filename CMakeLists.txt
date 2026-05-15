@@ -99,6 +99,14 @@ target_link_libraries(evaluator_runtime_material_check
     ${OpenFHE_LIBRARIES}
 )
 
+add_executable(openfhe_controlled_reveal_reference
+    tools/openfhe_controlled_reveal_reference.cpp
+)
+
+target_link_libraries(openfhe_controlled_reveal_reference
+    ${OpenFHE_LIBRARIES}
+)
+
 add_executable(dump_openfhe_eval_bin_gate_circuit
     tools/dump_openfhe_eval_bin_gate_circuit.cpp
     src/gc/boolean_circuit.cpp

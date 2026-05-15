@@ -478,6 +478,44 @@ GC_f(x', b')
 6. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
 7. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 
+## OpenFHE EvalBinGate circuit dump
+
+目前新增一個專門檢查 `OpenFHE.EvalBinGate` 展開形狀的工具：
+
+```bash
+./build_mock.sh --evalbingate-circuit
+```
+
+它會輸出：
+
+```text
+artifacts/openfhe_evalbingate_and_demo.txt
+artifacts/openfhe_evalbingate_or_demo.txt
+artifacts/openfhe_evalbingate_xor_demo.txt
+artifacts/openfhe_evalbingate_xnor_demo.txt
+```
+
+每份 dump 的 public inputs 是兩個 demo LWE ciphertext：
+
+```text
+lhs_a_i_bit_j, lhs_b_bit_j
+rhs_a_i_bit_j, rhs_b_bit_j
+```
+
+電路目前已展開：
+
+```text
+ct_sum = ct_lhs + ct_rhs
+ct_sum = 2 * ct_sum        // XOR/XNOR 才需要
+phase = b - <a,hsk> mod q
+bootstrap LUT placeholder
+output ciphertext fields
+```
+
+其中 `hsk` 會出現在 constant wires，dump 會以 `<selected-label>` redaction 顯示。這符合之後 garble 時「只把選中的 hsk labels 放進 artifact」的方向。
+
+重要限制：`openfhe_bootstrap_placeholder` 還不是正式 OpenFHE `BootstrapGateCore`。也就是說，現在已經有 `EvalBinGate` 的 Boolean circuit 外殼和 pre-bootstrap arithmetic，但 blind rotation、RGSW accumulator、key switching 的完整 bit-level 展開還沒做。
+
 ## 下一步
 
 接下來要對齊 production OpenFHE 與離線流程：

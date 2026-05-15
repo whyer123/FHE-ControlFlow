@@ -20,7 +20,31 @@ The loop demo keeps `x`, `a`, and `b` encrypted. Each round reveals only `[x <= 
 
 In `MOCK_OPENFHE` mode, the Docker `gc_mock` target now uses an EMP-toolkit half-gates garbled-circuit artifact on every loop iteration. The in-repo minimal GC backend remains available as a fallback when `USE_EMP_GC` is not set.
 
-## Fixed-GC Evaluator Runtime Demo
+## OpenFHE EvalBinGate Circuit Dump
+
+The repo now includes a first OpenFHE-shaped Boolean-circuit expansion for
+`EvalBinGate`. It expands LWE ciphertext field inputs, OpenFHE's additive
+pre-bootstrap step, fixed demo `hsk` selected-label constants, and a named
+bootstrap placeholder that emits an LWE ciphertext.
+
+```bash
+./build_mock.sh --evalbingate-circuit
+```
+
+This writes:
+
+```text
+artifacts/openfhe_evalbingate_and_demo.txt
+artifacts/openfhe_evalbingate_or_demo.txt
+artifacts/openfhe_evalbingate_xor_demo.txt
+artifacts/openfhe_evalbingate_xnor_demo.txt
+```
+
+Current limitation: `openfhe_bootstrap_placeholder` is not the real OpenFHE
+blind-rotation/RGSW bootstrapping core yet. It is deliberately named in the
+circuit dump so this step cannot be mistaken for the final production circuit.
+
+## Fixed-Bound Runtime Demo (Transitional Mock)
 
 The fixed-runtime path models the first offline demo target:
 
@@ -46,6 +70,9 @@ For fast local validation:
 ```
 
 The fixed circuit dump is written to `artifacts/fixed_bound_circuit_g_demo.txt`. Its public inputs are only `x_i`; fixed `b` and decryption constants are represented as selected-label constants. The evaluator runtime loads `artifacts/fixed_bound_circuit_shape.bin` and `artifacts/fixed_bound_gc_artifact.bin`, not `hpk` or `hsk`.
+
+This path is transitional and not the final contract. The target interface is
+still `GC_f(x', b')`; only setup/key/GC generation are precomputed.
 
 To verify the real OpenFHE runtime material boundary:
 

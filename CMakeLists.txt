@@ -99,6 +99,18 @@ target_link_libraries(evaluator_runtime_material_check
     ${OpenFHE_LIBRARIES}
 )
 
+add_executable(dump_openfhe_eval_bin_gate_circuit
+    tools/dump_openfhe_eval_bin_gate_circuit.cpp
+    src/gc/boolean_circuit.cpp
+    src/gc/boolean_circuit_export.cpp
+    src/gc/openfhe_eval_bin_gate_circuit.cpp
+    src/gc/openfhe_lwe_decryption_circuit.cpp
+)
+
+target_link_libraries(dump_openfhe_eval_bin_gate_circuit
+    ${OpenFHE_LIBRARIES}
+)
+
 if(USE_EMP_GC)
     foreach(GC_TARGET demo_loop setup_fixed_gc_material)
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")

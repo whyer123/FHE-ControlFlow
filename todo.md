@@ -20,9 +20,13 @@
 - 新增 `active_garbled_circuit_io` 與 `boolean_circuit_io`，讓 evaluator runtime 載入 serialized GC artifact 和 redacted circuit shape。
 - 新增 OpenFHE fixed material：`a_prime_bit_0..3`、`b_prime_bit_0..3`、`one_prime_integer_bit_0..3`。
 - 新增 `evaluator_runtime_material_check`，只載入 OpenFHE context/evaluation keys、`a'`、integer `one'`，做一次 encrypted add，確認 runtime 不需 `hpk/hsk`。
+- 新增 `OpenFHEEvalBinGateCircuit`，把 demo LWE ciphertext fields、OpenFHE additive pre-bootstrap step、固定 demo `hsk` selected-label constants 展開成 Boolean circuit。
+- 新增 `dump_openfhe_eval_bin_gate_circuit` 與 `./build_mock.sh --evalbingate-circuit`，可輸出 AND/OR/XOR/XNOR 的 `openfhe_evalbingate_*_demo.txt` circuit dump。
 
 ## 還差什麼
 
+- 把目前 transitional fixed-bound `GC_f(x')` runtime 改回最終需要的 `GC_f(x', b')` runtime contract。
+- 把 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
 - 對齊 OpenFHE production decrypt 的真實 ciphertext fields、參數大小和 noise range；目前只有 toy 參數的 rounding shape。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
 - 把真實 OpenFHE ciphertext field bits 接到 fixed GC input，而不是目前 fixed runtime 的 mock `.bit` material。

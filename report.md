@@ -457,6 +457,8 @@ hsk = [1, 0, 1, 1]
 
 新的 `src/gc/openfhe_controlled_reveal_reference.cpp` 則已經改成使用已生成 OpenFHE TOY keypair 裡的實際 64 個 ternary `hsk` 係數，並用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 `Dec_hsk` 算術。這個 reference source 是接下來要 lowering 成 GC 的版本，還沒接到主要 runtime。
 
+另外已新增 `export_openfhe_eval_key_material`，可以把固定 demo 的 `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays。實測 material 約 70MB，refresh key 有 `524288` 個 words，switch key A 有 `4915200` 個 words，switch key B 有 `76800` 個 words。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
@@ -464,6 +466,7 @@ hsk = [1, 0, 1, 1]
 - `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
 - 主要 GC runtime 的 LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
+- `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。
 - in-repo Minimal GC backend 只保留為無 EMP 環境的 fallback，不是主要展示路徑。
 - Client setup 和 evaluator loop 還在同一個 executable，`GC_f` artifact 尚未寫檔或跨程序載入。

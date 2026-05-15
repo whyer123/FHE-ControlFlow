@@ -479,6 +479,44 @@ GC_f(x', b')
 7. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 8. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 
+## Fixed OpenFHE evaluation key export
+
+固定 demo 的 evaluation keys 已經可以轉成 standalone `.cpp` 可用的 plain integer material：
+
+```bash
+cmake --build build-local --target export_openfhe_eval_key_material --parallel 2
+./build-local/export_openfhe_eval_key_material \
+  demo_keys/openfhe_binfhe_demo_keypair \
+  artifacts
+```
+
+輸出：
+
+```text
+artifacts/openfhe_fixed_eval_key_material.cpp
+artifacts/openfhe_fixed_eval_key_material_manifest.txt
+```
+
+目前固定 material 的實際大小：
+
+```text
+refresh.dim0=1
+refresh.dim1=2
+refresh.dim2=64
+refresh.rows=4
+refresh.cols=2
+refresh.poly_length=512
+refresh.words=524288
+switch.dim0=512
+switch.dim1=25
+switch.dim2=6
+switch.vector_length=64
+switch.words_a=4915200
+switch.words_b=76800
+```
+
+這一步只完成「把 OpenFHE eval keys 從 serialized object 轉成 C++ 整數資料」。下一步還要把這些 flat words 的索引 layout 精確接回 `EvalAccCGGI` 和 `SwitchCTtoqn`。
+
 ## OpenFHE EvalBinGate circuit dump
 
 目前新增一個專門檢查 `OpenFHE.EvalBinGate` 展開形狀的工具：

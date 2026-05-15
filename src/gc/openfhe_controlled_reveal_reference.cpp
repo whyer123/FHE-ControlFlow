@@ -30,12 +30,16 @@ static const u32 kRoundingOffset =
 static const u32 kIntegerBits = 4;
 static const u32 kRingDimension = 512;
 static const u32 kRingModulus = 134215681;
-static const u32 kGadgetBaseBits = 4;
-static const u32 kGadgetBase = 1U << kGadgetBaseBits;
-static const u32 kGadgetDigits = 7;
-static const u32 kKeySwitchBaseBits = 4;
-static const u32 kKeySwitchBase = 1U << kKeySwitchBaseBits;
-static const u32 kKeySwitchDigits = 3;
+static const u32 kGadgetBaseBits = 9;
+static const u32 kGadgetBase = 512;
+static const u32 kGadgetDigits = 3;
+static const u32 kCggiExternalProductDigits = (kGadgetDigits - 1U) * 2U;
+static const u32 kKeySwitchBase = 25;
+static const u32 kKeySwitchDigits = 6;
+static const u32 kAccumulatorPositiveMessage =
+    kRingModulus / (kPlaintextModulus * 2U) + 1U;
+static const u32 kAccumulatorNegativeMessage =
+    kRingModulus - kAccumulatorPositiveMessage;
 
 struct LweCiphertext {
     u32 a[kLweDimension];
@@ -52,7 +56,7 @@ struct RingAccumulator {
 };
 
 struct CggiBootstrapKeyRow {
-    RingAccumulator digits[kGadgetDigits];
+    RingAccumulator digits[kCggiExternalProductDigits];
 };
 
 struct SwitchingKeyRow {
@@ -72,6 +76,14 @@ struct EvaluationKeys {
 struct LargeLweCiphertext {
     u32 a[kRingDimension];
     u32 b;
+};
+
+struct GateRange {
+    u32 q1;
+    u32 q2;
+    u32 lb;
+    u32 ub;
+    bool swap;
 };
 
 // Fixed hsk for the future fixed-GC demo.
@@ -196,23 +208,38 @@ u32 MulModRing(u32 lhs, u32 rhs) {
     return static_cast<u32>((static_cast<u64>(lhs) * rhs) % kRingModulus);
 }
 
-u32 ScaleQToRingQ(u32 value) {
-    const u64 numerator =
-        static_cast<u64>(value) * kRingModulus + kCiphertextModulus / 2U;
-    return static_cast<u32>((numerator / kCiphertextModulus) % kRingModulus);
-}
-
 u32 ScaleRingQToQ(u32 value) {
     const u64 numerator =
         static_cast<u64>(value) * kCiphertextModulus + kRingModulus / 2U;
     return static_cast<u32>((numerator / kRingModulus) % kCiphertextModulus);
 }
 
-u32 GateAccumulatorMessage(GateKind gate) {
+u32 GateConstant(GateKind gate) {
+    // OpenFHE RingGSWCryptoParams::PreCompute stores:
+    //   AND = 7 * (q >> 3)
+    //   XOR = 6 * (q >> 3)
     if (gate == GateAnd) {
-        return ScaleQToRingQ(2U * kEncodedOne);
+        return 7U * (kCiphertextModulus >> 3);
     }
-    return ScaleQToRingQ(kEncodedOne);
+    return 6U * (kCiphertextModulus >> 3);
+}
+
+GateRange GateAccumulatorRange(GateKind gate) {
+    const u32 q1 = GateConstant(gate);
+    const u32 q2 = AddModQ(q1, kCiphertextModulus >> 1);
+    const bool swap = q1 >= q2;
+
+    GateRange out = {};
+    out.q1 = q1;
+    out.q2 = q2;
+    out.lb = swap ? q2 : q1;
+    out.ub = swap ? q1 : q2;
+    out.swap = swap;
+    return out;
+}
+
+bool InHalfOpenRange(u32 value, u32 lb, u32 ub) {
+    return value >= lb && value < ub;
 }
 
 RingAccumulator ZeroAccumulator() {
@@ -266,19 +293,24 @@ RingAccumulator RotateAccumulatorByMonomial(const RingAccumulator& value,
 RingAccumulator InitGateAccumulator(GateKind gate,
                                     const LweCiphertext& prebootstrap) {
     RingAccumulator out = {};
-    const u32 message = GateAccumulatorMessage(gate);
+    const GateRange range = GateAccumulatorRange(gate);
+    const u32 lv = range.swap ? kAccumulatorPositiveMessage
+                              : kAccumulatorNegativeMessage;
+    const u32 uv = range.swap ? kAccumulatorNegativeMessage
+                              : kAccumulatorPositiveMessage;
+    const u32 q_half = kCiphertextModulus >> 1;
+    const u32 factor = kRingDimension / q_half;
+    u32 shifted_b = prebootstrap.b;
 
-    for (u32 i = 0; i < kRingDimension; ++i) {
-        out.b[i] = i < (kRingDimension / 2U)
-                       ? message
-                       : (message == 0 ? 0 : kRingModulus - message);
+    // OpenFHE sparsely embeds Z_q into Z_Q[X]/(X^N+1). Only every `factor`
+    // coefficient is assigned; all other coefficients stay zero. OpenFHE then
+    // NTT-converts this polynomial before CGGI accumulation.
+    for (u32 i = 0; i < kRingDimension; i += factor) {
+        out.b[i] = InHalfOpenRange(shifted_b, range.lb, range.ub) ? lv : uv;
+        shifted_b = SubModQ(shifted_b, 1U);
     }
 
-    const u32 initial_rotation =
-        ((2U * kRingDimension) * prebootstrap.b +
-         kCiphertextModulus / 2U) /
-        kCiphertextModulus;
-    return RotateAccumulatorByMonomial(out, initial_rotation);
+    return out;
 }
 
 u32 SignedGadgetDigit(u32 value, u32 digit_index) {
@@ -294,7 +326,7 @@ RingAccumulator ExternalProductCGGI(const RingAccumulator& decomposed_input,
     // arithmetic is now localized to this function and the key layout above.
     RingAccumulator out = {};
 
-    for (u32 digit = 0; digit < kGadgetDigits; ++digit) {
+    for (u32 digit = 0; digit < kCggiExternalProductDigits; ++digit) {
         for (u32 i = 0; i < kRingDimension; ++i) {
             const u32 digit_a =
                 SignedGadgetDigit(decomposed_input.a[i], digit);
@@ -350,8 +382,11 @@ LargeLweCiphertext ExtractLweFromAccumulator(
 }
 
 u32 KeySwitchDigit(u32 value, u32 digit_index) {
-    return (value >> (digit_index * kKeySwitchBaseBits)) &
-           (kKeySwitchBase - 1U);
+    u32 shifted = value;
+    for (u32 i = 0; i < digit_index; ++i) {
+        shifted /= kKeySwitchBase;
+    }
+    return shifted % kKeySwitchBase;
 }
 
 LweCiphertext MulSmallCiphertextByScalar(const LweCiphertext& value,

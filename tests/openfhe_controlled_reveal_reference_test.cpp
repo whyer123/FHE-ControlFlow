@@ -7,6 +7,7 @@ namespace {
 using controlled_reveal_reference::EvaluationKeys;
 using controlled_reveal_reference::IntegerCiphertext;
 using controlled_reveal_reference::LweCiphertext;
+using controlled_reveal_reference::RingAccumulator;
 
 LweCiphertext OnePrimeCiphertextFromOpenFHE() {
     return {{
@@ -37,6 +38,39 @@ LweCiphertext ZeroPrimeCiphertextFromOpenFHE() {
 } // namespace
 
 int main() {
+    if (controlled_reveal_reference::GateConstant(
+            controlled_reveal_reference::GateAnd) != 448U) {
+        return EXIT_FAILURE;
+    }
+    if (controlled_reveal_reference::GateConstant(
+            controlled_reveal_reference::GateXor) != 384U) {
+        return EXIT_FAILURE;
+    }
+
+    const auto and_range =
+        controlled_reveal_reference::GateAccumulatorRange(
+            controlled_reveal_reference::GateAnd);
+    if (!and_range.swap || and_range.lb != 192U || and_range.ub != 448U) {
+        return EXIT_FAILURE;
+    }
+
+    LweCiphertext prebootstrap = {};
+    prebootstrap.b = 448U;
+    const RingAccumulator and_accumulator =
+        controlled_reveal_reference::InitGateAccumulator(
+            controlled_reveal_reference::GateAnd, prebootstrap);
+    if (and_accumulator.b[0] !=
+        controlled_reveal_reference::kAccumulatorNegativeMessage) {
+        return EXIT_FAILURE;
+    }
+    if (and_accumulator.b[2] !=
+        controlled_reveal_reference::kAccumulatorPositiveMessage) {
+        return EXIT_FAILURE;
+    }
+    if (and_accumulator.b[1] != 0U || and_accumulator.b[3] != 0U) {
+        return EXIT_FAILURE;
+    }
+
     if (!controlled_reveal_reference::DecFixedHsk(
             OnePrimeCiphertextFromOpenFHE())) {
         return EXIT_FAILURE;

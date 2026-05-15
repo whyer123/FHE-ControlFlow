@@ -472,11 +472,12 @@ GC_f(x', b')
 
 1. `MOCK_OPENFHE` 的 ciphertext 只有一個 `.bit`，所以 GC input label encoding 目前仍是從 mock bit 直接取得。
 2. fixed runtime 已經有 artifact serialization，但 mock runtime 使用的是 mock `a'`/`one'` bit material，不是真實 OpenFHE ciphertext fields。
-3. LWE decryption circuit 使用固定 demo key、固定 mask、固定 `q=16`，不是從真實 OpenFHE ciphertext 解析出來。
-4. decode 已加入 demo 版 `phase + q/(2p)` rounding shape，但仍未接真實 OpenFHE ciphertext fields 和 production 參數。
+3. 早期 LWE decryption circuit artifact 仍使用固定 demo key、固定 mask、固定 `q=16`；新的 `src/gc/openfhe_controlled_reveal_reference.cpp` 已改用實際 OpenFHE TOY hsk 與 `q=512`，但尚未 lowering 成 GC artifact。
+4. decode 已加入 `phase + q/(2p)` rounding shape；reference source 已用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證這段 decryption arithmetic，但主要 runtime 還沒接真實 OpenFHE ciphertext fields。
 5. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；但它尚未把真實 OpenFHE ciphertext bits 接到 GC input。
 6. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
 7. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
+8. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 
 ## OpenFHE EvalBinGate circuit dump
 

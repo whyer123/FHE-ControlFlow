@@ -41,6 +41,7 @@
 - 新增 `setup_openfhe_lwe_int_gc_material`，setup 端讀完整 OpenFHE material 和 `hsk.s_mod_q`，輸出 v2 circuit shape、GC artifact、redacted circuit dump、以及不含 `hsk`/明文值的 runtime material。
 - 新增 `openfhe_lwe_int_runtime_demo`，evaluator runtime 只載入 `a'`、`b'`、`one'`、circuit shape、GC artifact，執行 `GC_f(x', b') = GC{[Dec_hsk(x') <= Dec_hsk(b')]}` loop。
 - 新增 `test_openfhe_lwe_int_runtime_demo.sh`，驗證 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並跑出 predicate sequence `1,1,1,1,1,0` 和 iterations `5`。
+- 新增 `test_openfhe_lwe_int_runtime_multiple_values.sh`，用多組 OpenFHE-generated `a'、b'、one'` 跑完整 evaluator runtime loop，驗證 `0..0`、`1..3`、`3..7`、`7..3`、`8..7` 的 predicate sequence 和 iteration count。
 - 新增 `audit_openfhe_lwe_int_runtime_boundary`，結構化檢查 runtime directory 不含 `hsk.s_raw`、`hsk.s_mod_q`、`manual_dec`、clear plaintext field、`hpk/hsk` key file references，並確認 serialized circuit shape 只保留 secret wire ids、不保存 secret values。
 - 新增 `build_mock.sh --v2-openfhe-runtime-demo <material> <runtime-dir>`，讓同一條 v2 runtime demo 可以在本機 minimal GC 或 Docker `gc_mock` 的 EMP half-gates backend 下執行。
 - 新增 `test_build_mock_v2_openfhe_runtime_demo.sh`，驗證 build_mock v2 runtime 入口會 setup、audit、runtime 一次跑完並輸出 `1,1,1,1,1,0`。
@@ -65,4 +66,4 @@
 - 若要更接近 production threat model，需做更嚴格的 artifact/security review；目前 audit 只證明 repo serialization 沒有明文 setup-only fields/key-file references，不等於 reusable GC 的密碼學安全證明。
 - 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
-- 加測試：comparator correctness、increment correctness、BooleanCircuit evaluation、EMP GC label flow。
+- 加測試：更完整的 comparator exhaustive correctness、increment/noise boundary、EMP GC label flow。

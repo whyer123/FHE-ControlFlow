@@ -166,6 +166,10 @@ can be tested against multiple OpenFHE-generated ciphertext pairs:
 
 `bash tests/test_openfhe_lwe_int_multiple_values.sh` exercises several such
 pairs, including false cases like `8 <= 7`.
+`bash tests/test_openfhe_lwe_int_runtime_multiple_values.sh` additionally
+drives the full evaluator runtime loop over multiple OpenFHE-generated
+materials, checking predicate sequences such as `1,1,1,0` for `1..3` and `0`
+for already-false starts like `8..7`.
 
 The setup-side material format is versioned as
 `openfhe_lwe_int_setup_material_v1`. Runtime material is separately versioned

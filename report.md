@@ -623,6 +623,22 @@ bash tests/test_openfhe_lwe_int_runtime_demo.sh
 
 這個測試會檢查 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並確認 evaluator runtime 能只靠 `a'`、`b'`、`one'`、circuit shape、GC artifact 跑出 `1,1,1,1,1,0`。
 
+也新增多組 runtime loop 測試：
+
+```text
+bash tests/test_openfhe_lwe_int_runtime_multiple_values.sh
+```
+
+這個測試每一組都重新用 OpenFHE 產生 `a'`、`b'`、`one'`，再重新 setup GC artifact 和 sanitized runtime material，最後跑 evaluator runtime。已覆蓋：
+
+```text
+0..0 -> predicate sequence 1,0
+1..3 -> predicate sequence 1,1,1,0
+3..7 -> predicate sequence 1,1,1,1,1,0
+7..3 -> predicate sequence 0
+8..7 -> predicate sequence 0
+```
+
 測試中也會執行：
 
 ```text

@@ -52,6 +52,7 @@
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
 - 對齊 OpenFHE `BootstrapGateCore` 的 gate constants 與 accumulator sparse LUT 初始化：`AND=448`、`XOR=384`，使用 `[lb, ub)` range 和 `Q/(2p)+1` / `Q-Q/(2p)-1` message mapping。
 - 新增 CGGI bootstrap primitives：signed digit decomposition、negacyclic monomial multiplication、negacyclic polynomial multiplication、coefficient-domain external product。
+- `generate_openfhe_keypair` 現在支援 `[paramset]` 參數，可用 `STD128` 重新產生正常 OpenFHE keypair；4-bit demo 的 plaintext modulus 仍由 `export_openfhe_lwe_int_material` 固定為 `p=16`。
 
 ## 還差什麼
 
@@ -61,10 +62,10 @@
 - 把 `openfhe_controlled_reveal_reference.cpp` 裡的 `ExternalProductCGGI`、`EvalAccCGGI`、`SwitchCTtoqn` 補成 OpenFHE 1.5.0 bit-accurate arithmetic；目前已移除 semantic shortcut，但 bootstrap/key-switch internals 仍是結構骨架。
 - 把 `export_openfhe_eval_key_material` 產生的 flat words 精確接回 `EvalAccCGGI` / `SwitchCTtoqn` 的索引 layout。
 - 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
-- 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
+- 用 `STD128` keypair 實際跑完整 v2 runtime 與 gate-size/noise 評估；目前 checked-in material 仍是 TOY，新的 keygen 只先打通正常 paramset 的生成入口。
 - 若要 production packaging，將目前 repo-local text material format 換成穩定 binary/JSON schema，並加版本遷移策略。
 - 實際執行 `docker-compose run --rm openfhe_emp_v2_runtime`，完成 OpenFHE material generation + EMP half-gates v2 runtime 的容器內端到端驗證；目前本機 Docker daemon 無法連線，錯誤是 `Cannot connect to the Docker daemon ...`。
 - 若要更接近 production threat model，需做更嚴格的 artifact/security review；目前 audit 只證明 repo serialization 沒有明文 setup-only fields/key-file references，不等於 reusable GC 的密碼學安全證明。
 - 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。
-- 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
+- 若要 production security，需要用安全參數重生 material，並重新評估 circuit/gate size、runtime、noise range。
 - 加測試：更完整的 comparator exhaustive correctness、noise boundary、EMP GC label flow。

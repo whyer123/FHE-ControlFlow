@@ -474,8 +474,8 @@ GC_f(x', b')
 1. 舊的 `MOCK_OPENFHE` / fixed-bound path 仍存在，作為早期比較用；主要 v2 integer LWE runtime 已經改用 OpenFHE 匯出的 ciphertext fields。
 2. fixed runtime 使用的是 mock `a'`/`one'` bit material，不是真實 OpenFHE ciphertext fields；v2 runtime 才是目前應看的 `GC_f(x', b')` 路線。
 3. 早期 LWE decryption circuit artifact 仍使用固定 demo key、固定 mask、固定 `q=16`；新的 v2 integer LWE circuit 已改用實際 OpenFHE TOY hsk 與 `q=512`。
-4. decode 已加入 `phase + q/(2p)` rounding shape；v2 runtime 已用實際 OpenFHE `a'`、`b'`、`one'` 跑完整 loop，但仍是 TOY/test parameters，不是 production security。
-5. 已新增 `export_openfhe_lwe_int_material`，可以用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。目前實測 TOY material 是 `n=64, q=512, p=16`，且手寫 exported-field Dec 與 OpenFHE Decrypt 一致。
+4. decode 已加入 `phase + q/(2p)` rounding shape；v2 runtime 已用實際 OpenFHE `a'`、`b'`、`one'` 跑完整 loop。repo 內預設 key material 仍是 `TOY`，但 `generate_openfhe_keypair <dir> STD128` 已可重生正常 OpenFHE paramset 的 keypair。
+5. 已新增 `export_openfhe_lwe_int_material`，可以用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。目前已實測 checked-in TOY material 是 `n=64, q=512, p=16`，且手寫 exported-field Dec 與 OpenFHE Decrypt 一致。
    這個工具也支援指定 demo plaintext，例如 `... mat.txt 8 7 1` 會產生 `Enc(8)`、`Enc(7)`、`Enc(1)`。
    setup material 格式版本是 `openfhe_lwe_int_setup_material_v1`；runtime material 格式版本是 `openfhe_lwe_int_runtime_material_v1`。parser 會拒絕沒有 format version 的 setup material。
 6. 已新增 `OpenFHELWEIntDecryptCompareCircuit`，直接吃 OpenFHE 匯出的 integer ciphertext fields，建立 v2 Boolean circuit：

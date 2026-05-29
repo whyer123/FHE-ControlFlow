@@ -686,7 +686,7 @@ docker-compose run --rm openfhe_emp_v2_runtime
 目前仍是 mock 或 demo 化的部分：
 
 - 舊的 `MOCK_OPENFHE` / fixed-bound runtime path 仍存在，主要作為早期比較用；v2 OpenFHE integer LWE runtime 已改用真實 OpenFHE 匯出的 ciphertext fields。
-- v2 runtime 目前使用 OpenFHE TOY/test key material，還不是 production security parameters。
+- repo 內 checked-in v2 runtime material 目前使用 OpenFHE `TOY` key，方便快速測試；`generate_openfhe_keypair <dir> STD128` 已支援重新產生正常 OpenFHE paramset 的 keypair，再交給 `export_openfhe_lwe_int_material` 匯出同一個 4-bit demo 的 material。
 - v2 runtime 的 GC artifact 已經把 `hsk.s_mod_q` 變成 selected labels，並新增 serialization boundary audit；但這不是 reusable GC 的密碼學安全證明。
 - v2 runtime 的 `x' <- x' + one'` 是 integer LWE ciphertext component-wise addition；如果之後要回到 bit-level OpenFHE `EvalBinGate` loop update，仍要處理 evaluation keys / bootstrapping。
 - Docker `openfhe_emp_v2_runtime` 的 EMP 實跑目前還沒完成，因為本機 Docker daemon 連不上；Dockerfile/compose 入口已準備好，等 Docker daemon 啟動即可跑。

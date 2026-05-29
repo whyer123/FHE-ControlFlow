@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -24,17 +25,60 @@ void WriteTextFile(const std::filesystem::path& path, const std::string& body) {
     file << body;
 }
 
+BINFHE_PARAMSET ParseParamSet(const std::string& value) {
+    if (value == "TOY") {
+        return TOY;
+    }
+    if (value == "MEDIUM") {
+        return MEDIUM;
+    }
+    if (value == "STD128") {
+        return STD128;
+    }
+    if (value == "STD192") {
+        return STD192;
+    }
+    if (value == "STD256") {
+        return STD256;
+    }
+    throw std::runtime_error(
+        "unsupported BinFHE paramset '" + value +
+        "'. Supported values: TOY, MEDIUM, STD128, STD192, STD256.");
+}
+
+std::string ParamSetName(BINFHE_PARAMSET param_set) {
+    switch (param_set) {
+    case TOY:
+        return "TOY";
+    case MEDIUM:
+        return "MEDIUM";
+    case STD128:
+        return "STD128";
+    case STD192:
+        return "STD192";
+    case STD256:
+        return "STD256";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 } // namespace
 
-int main(int argc, char** argv) {
+int Run(int argc, char** argv) {
+    Require(argc >= 1 && argc <= 3,
+            "usage: generate_openfhe_keypair [output-dir] [paramset]");
+
     const std::filesystem::path output_dir =
         argc > 1 ? std::filesystem::path(argv[1])
                  : std::filesystem::path("demo_keys/openfhe_binfhe_demo_keypair");
+    const auto param_set = argc > 2 ? ParseParamSet(argv[2]) : TOY;
+    const auto param_set_name = ParamSetName(param_set);
 
     std::filesystem::create_directories(output_dir);
 
     BinFHEContext cc;
-    cc.GenerateBinFHEContext(TOY);
+    cc.GenerateBinFHEContext(param_set);
 
     auto hsk = cc.KeyGen();
     Require(hsk != nullptr, "OpenFHE BinFHE KeyGen failed.");
@@ -93,38 +137,51 @@ int main(int argc, char** argv) {
                                     SerType::BINARY),
             "failed to serialize switching evaluation key binary.");
 
-    WriteTextFile(
-        manifest,
-        "# OpenFHE BinFHE Demo Key Pair\n\n"
-        "This directory contains one generated OpenFHE BinFHE/LWE key pair for "
-        "the fixed demo direction.\n\n"
-        "## Files\n\n"
-        "- `hpk_lwe_public_key.json`: JSON-serialized LWE public key.\n"
-        "- `hpk_lwe_public_key.bin`: binary-serialized LWE public key.\n"
-        "- `hsk_lwe_secret_key.json`: JSON-serialized LWE secret key.\n"
-        "- `hsk_lwe_secret_key.bin`: binary-serialized LWE secret key.\n"
-        "- `binfhe_context_params.bin`: BinFHE context/parameter material.\n"
-        "- `eval_refresh_key.bin`: refresh/bootstrapping evaluation key.\n"
-        "- `eval_switch_key.bin`: switching evaluation key.\n\n"
-        "## Parameters\n\n"
-        "- OpenFHE context: `BinFHEContext`\n"
-        "- Parameter set: `TOY`\n"
-        "- Public-key encryption self-test: `Enc_hpk(0/1)` then `Dec_hsk`\n"
-        "- Gate self-test: `EvalBinGate(AND, Enc_hpk(1), Enc_hpk(1)) = 1`\n\n"
-        "## Size note\n\n"
-        "The LWE public key is large because it contains many LWE public-key "
-        "samples. The JSON file expands vectors into decimal text and is much "
-        "larger than the binary form; runtime code should prefer `.bin` files. "
-        "The switching evaluation key is also large and is separate from `hpk`.\n\n"
-        "These files are demo material only and are not production security "
-        "parameters.\n");
+    std::ostringstream manifest_body;
+    manifest_body
+        << "# OpenFHE BinFHE Demo Key Pair\n\n"
+        << "This directory contains one generated OpenFHE BinFHE/LWE key pair for "
+        << "the fixed demo direction.\n\n"
+        << "## Files\n\n"
+        << "- `hpk_lwe_public_key.json`: JSON-serialized LWE public key.\n"
+        << "- `hpk_lwe_public_key.bin`: binary-serialized LWE public key.\n"
+        << "- `hsk_lwe_secret_key.json`: JSON-serialized LWE secret key.\n"
+        << "- `hsk_lwe_secret_key.bin`: binary-serialized LWE secret key.\n"
+        << "- `binfhe_context_params.bin`: BinFHE context/parameter material.\n"
+        << "- `eval_refresh_key.bin`: refresh/bootstrapping evaluation key.\n"
+        << "- `eval_switch_key.bin`: switching evaluation key.\n\n"
+        << "## Parameters\n\n"
+        << "- OpenFHE context: `BinFHEContext`\n"
+        << "- Parameter set: `" << param_set_name << "`\n"
+        << "- Public-key encryption self-test: `Enc_hpk(0/1)` then `Dec_hsk`\n"
+        << "- Gate self-test: `EvalBinGate(AND, Enc_hpk(1), Enc_hpk(1)) = 1`\n\n"
+        << "## Size note\n\n"
+        << "The LWE public key is large because it contains many LWE public-key "
+        << "samples. The JSON file expands vectors into decimal text and is much "
+        << "larger than the binary form; runtime code should prefer `.bin` files. "
+        << "The switching evaluation key is also large and is separate from `hpk`.\n\n"
+        << "These files are demo material only. Use `STD128` or stronger when the "
+        << "demo needs normal OpenFHE security parameters; `TOY` is only for fast "
+        << "prototype runs.\n";
+
+    WriteTextFile(manifest, manifest_body.str());
 
     std::cout << "Generated OpenFHE BinFHE key pair in "
               << output_dir.string() << "\n";
+    std::cout << "  paramset: " << param_set_name << "\n";
     std::cout << "  hpk: " << hpk_json.string() << "\n";
     std::cout << "  hsk: " << hsk_json.string() << "\n";
     std::cout << "  context params: " << context_bin.string() << "\n";
     std::cout << "  refresh eval key: " << refresh_key_bin.string() << "\n";
     std::cout << "  switch eval key: " << switch_key_bin.string() << "\n";
     return 0;
+}
+
+int main(int argc, char** argv) {
+    try {
+        return Run(argc, argv);
+    } catch (const std::exception& e) {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
 }

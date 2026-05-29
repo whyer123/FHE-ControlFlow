@@ -184,8 +184,20 @@ This demo implements:
 GC_f(x', b') = GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 ```
 
-It is still a demo using OpenFHE TOY/test material, not production security
-parameters. The old fixed-bound mock path remains for comparison.
+The repository's checked-in key directory is still OpenFHE `TOY` material for
+fast local tests. To generate the same 4-bit integer demo over a normal
+OpenFHE parameter set, use the keygen tool with an explicit paramset:
+
+```bash
+./build-local/generate_openfhe_keypair /tmp/openfhe_std128_keys STD128
+./build-local/export_openfhe_lwe_int_material \
+  /tmp/openfhe_std128_keys \
+  /tmp/v2_lwe_integer_material_std128.txt
+```
+
+The plaintext domain remains `p=16` for the first loop demo; the selected
+paramset controls the OpenFHE LWE key/ciphertext parameters. The old
+fixed-bound mock path remains for comparison.
 
 To run the same v2 runtime path through `build_mock.sh`, first generate a
 material file with OpenFHE, then pass it to the GC-only build:

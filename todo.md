@@ -28,6 +28,7 @@
 - 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 fixed-hsk decryption arithmetic。
 - 新增 `export_openfhe_lwe_int_material`，用現有 OpenFHE `hpk/hsk` 直接產生單一 4-bit integer LWE ciphertext material：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。
 - `export_openfhe_lwe_int_material` 支援 optional `a_plaintext b_plaintext one_plaintext` 參數，可用同一組 OpenFHE keypair 產生多組 LWE integer ciphertext fixture。
+- OpenFHE LWE integer setup material 已加上 `openfhe_lwe_int_setup_material_v1` format version，runtime material 也已有 `openfhe_lwe_int_runtime_material_v1`；parser 會拒絕缺少 setup format version 的 material。
 - 新增 `test_openfhe_lwe_int_material_export.sh`，驗證 OpenFHE Decrypt 與 exported-field `phase = b - <a,s> mod q`、`round_p(phase)` 手寫 Dec 一致。
 - 新增 `OpenFHELWEIntDecryptCompareCircuit`，把 OpenFHE 匯出的單一 integer LWE ciphertext fields 接成 v2 Boolean circuit：`GC{[Dec_hsk(x') <= Dec_hsk(b')]}` 的 circuit shape。
 - 新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 在 circuit/GC 裡以 selected-label constant 表示，而不是 public constant wire；text dump redaction 會顯示 `<selected-label>`。
@@ -59,7 +60,7 @@
 - 把 `export_openfhe_eval_key_material` 產生的 flat words 精確接回 `EvalAccCGGI` / `SwitchCTtoqn` 的索引 layout。
 - 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
 - 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
-- 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
+- 若要 production packaging，將目前 repo-local text material format 換成穩定 binary/JSON schema，並加版本遷移策略。
 - 實際執行 `docker-compose run --rm openfhe_emp_v2_runtime`，完成 OpenFHE material generation + EMP half-gates v2 runtime 的容器內端到端驗證；目前本機 Docker daemon 無法連線，錯誤是 `Cannot connect to the Docker daemon ...`。
 - 若要更接近 production threat model，需做更嚴格的 artifact/security review；目前 audit 只證明 repo serialization 沒有明文 setup-only fields/key-file references，不等於 reusable GC 的密碼學安全證明。
 - 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。

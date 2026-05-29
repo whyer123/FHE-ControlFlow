@@ -569,6 +569,20 @@ export_openfhe_lwe_int_material demo_keys/openfhe_binfhe_demo_keypair /tmp/mat_8
 
 這會用同一組 OpenFHE `hpk/hsk` 重新產生 `a'=Enc(8)`、`b'=Enc(7)`、`one'=Enc(1)`。`test_openfhe_lwe_int_multiple_values.sh` 會用這個介面驗證多組 true/false comparison，而不是只驗固定 `3<=7`。
 
+setup-side material 目前有明確格式版本：
+
+```text
+format = openfhe_lwe_int_setup_material_v1
+```
+
+runtime-side material 則是：
+
+```text
+format=openfhe_lwe_int_runtime_material_v1
+```
+
+parser 會拒絕沒有 format version 的 setup material，避免舊的 ad-hoc dump 被誤用成正式 v2 material。
+
 目前也已新增 `OpenFHELWEIntDecryptCompareCircuit`，將上述 fields 接進 v2 Boolean circuit：
 
 ```text

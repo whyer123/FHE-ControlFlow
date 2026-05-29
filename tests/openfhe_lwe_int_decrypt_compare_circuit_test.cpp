@@ -108,35 +108,40 @@ bool EvaluateCompare(const BooleanCircuit& circuit,
 } // namespace
 
 int main(int argc, char** argv) {
-    Require(argc == 2, "usage: openfhe_lwe_int_decrypt_compare_circuit_test <material.txt>");
+    try {
+        Require(argc == 2, "usage: openfhe_lwe_int_decrypt_compare_circuit_test <material.txt>");
 
-    const auto material = ReadOpenFHELWEIntMaterial(argv[1]);
-    const auto params = material.CircuitParams();
-    const auto circuit = OpenFHELWEIntDecryptCompareCircuit::Describe(params);
-    const auto text = BooleanCircuitToText(circuit, true);
+        const auto material = ReadOpenFHELWEIntMaterial(argv[1]);
+        const auto params = material.CircuitParams();
+        const auto circuit = OpenFHELWEIntDecryptCompareCircuit::Describe(params);
+        const auto text = BooleanCircuitToText(circuit, true);
 
-    Require(text.find("[secret_constant_wires]") != std::string::npos,
-            "circuit dump must show secret constant section");
-    Require(text.find("<selected-label>") != std::string::npos,
-            "secret constants must be redacted in circuit dump");
-    Require(circuit.secret_constant_wires.size() == params.dimension * 4U,
-            "expected duplicated hsk nonzero/sign secret constants per decrypt");
+        Require(text.find("[secret_constant_wires]") != std::string::npos,
+                "circuit dump must show secret constant section");
+        Require(text.find("<selected-label>") != std::string::npos,
+                "secret constants must be redacted in circuit dump");
+        Require(circuit.secret_constant_wires.size() == params.dimension * 4U,
+                "expected duplicated hsk nonzero/sign secret constants per decrypt");
 
-    const bool expected_forward =
-        material.a_prime.plaintext <= material.b_prime.plaintext;
-    const bool expected_reverse =
-        material.b_prime.plaintext <= material.a_prime.plaintext;
+        const bool expected_forward =
+            material.a_prime.plaintext <= material.b_prime.plaintext;
+        const bool expected_reverse =
+            material.b_prime.plaintext <= material.a_prime.plaintext;
 
-    Require(EvaluateCompare(circuit, material.a_prime, material.b_prime,
-                            params.modulus_bits) == expected_forward,
-            "Dec(a') <= Dec(b') result did not match exported plaintexts");
-    Require(EvaluateCompare(circuit, material.b_prime, material.a_prime,
-                            params.modulus_bits) == expected_reverse,
-            "Dec(b') <= Dec(a') result did not match exported plaintexts");
-    Require(EvaluateCompare(circuit, material.b_prime, material.b_prime,
-                            params.modulus_bits),
-            "expected Dec(b') <= Dec(b') for equal ciphertext inputs");
+        Require(EvaluateCompare(circuit, material.a_prime, material.b_prime,
+                                params.modulus_bits) == expected_forward,
+                "Dec(a') <= Dec(b') result did not match exported plaintexts");
+        Require(EvaluateCompare(circuit, material.b_prime, material.a_prime,
+                                params.modulus_bits) == expected_reverse,
+                "Dec(b') <= Dec(a') result did not match exported plaintexts");
+        Require(EvaluateCompare(circuit, material.b_prime, material.b_prime,
+                                params.modulus_bits),
+                "expected Dec(b') <= Dec(b') for equal ciphertext inputs");
 
-    std::cout << "OpenFHE LWE integer decrypt-compare circuit test passed.\n";
-    return EXIT_SUCCESS;
+        std::cout << "OpenFHE LWE integer decrypt-compare circuit test passed.\n";
+        return EXIT_SUCCESS;
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << "\n";
+        return EXIT_FAILURE;
+    }
 }

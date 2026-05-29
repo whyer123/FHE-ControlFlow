@@ -195,6 +195,11 @@ OpenFHELWEIntMaterial ReadOpenFHELWEIntMaterial(const std::string& path) {
         fields.emplace(Trim(line.substr(0, pos)), Trim(line.substr(pos + 1U)));
     }
 
+    const auto format_it = fields.find("format");
+    Require(format_it != fields.end() &&
+                format_it->second == "openfhe_lwe_int_setup_material_v1",
+            "invalid OpenFHE LWE integer setup material format: " + path);
+
     OpenFHELWEIntMaterial material;
     material.logical_plaintext_bits =
         static_cast<size_t>(ParseU64(fields, "logical_plaintext_bits"));

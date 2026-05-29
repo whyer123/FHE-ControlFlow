@@ -477,6 +477,7 @@ GC_f(x', b')
 4. decode 已加入 `phase + q/(2p)` rounding shape；v2 runtime 已用實際 OpenFHE `a'`、`b'`、`one'` 跑完整 loop，但仍是 TOY/test parameters，不是 production security。
 5. 已新增 `export_openfhe_lwe_int_material`，可以用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。目前實測 TOY material 是 `n=64, q=512, p=16`，且手寫 exported-field Dec 與 OpenFHE Decrypt 一致。
    這個工具也支援指定 demo plaintext，例如 `... mat.txt 8 7 1` 會產生 `Enc(8)`、`Enc(7)`、`Enc(1)`。
+   setup material 格式版本是 `openfhe_lwe_int_setup_material_v1`；runtime material 格式版本是 `openfhe_lwe_int_runtime_material_v1`。parser 會拒絕沒有 format version 的 setup material。
 6. 已新增 `OpenFHELWEIntDecryptCompareCircuit`，直接吃 OpenFHE 匯出的 integer ciphertext fields，建立 v2 Boolean circuit：
 
 ```text

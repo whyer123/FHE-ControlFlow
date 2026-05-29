@@ -142,6 +142,7 @@ void WriteManifest(const std::filesystem::path& path,
     out << "This file is setup-side material for the v2 decrypt-compare path.\n";
     out << "It exports real OpenFHE-generated LWE integer ciphertext fields and "
            "the matching fixed hsk coefficients for GC setup.\n\n";
+    out << "format = openfhe_lwe_int_setup_material_v1\n";
     out << "logical_plaintext_bits = 4\n";
     out << "plaintext_modulus = " << plaintext_modulus << "\n";
     out << "hsk.dimension = " << secret.GetLength() << "\n";

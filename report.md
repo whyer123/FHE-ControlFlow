@@ -499,13 +499,27 @@ Dec(b') <= Dec(b') -> 1
 
 尚未完成的是把這個 v2 circuit 接到 EMP half-gates artifact generation 和 evaluator runtime。
 
+目前已新增 v2 GC 測試：
+
+```text
+bash tests/test_openfhe_lwe_int_decrypt_compare_gc.sh
+```
+
+它會把同一個 `OpenFHELWEIntDecryptCompareCircuit` garble 成 artifact，再用 OpenFHE exported ciphertext bits evaluate predicate。預設本機使用 in-repo minimal GC backend；若在 Docker `gc_mock` 內執行：
+
+```text
+./build_mock.sh --v2-openfhe-gc-test
+```
+
+且 `USE_EMP_GC=1`，則會使用 EMP half-gates backend。這代表 v2 circuit 已接到 GC artifact/evaluation API；但本機尚未驗證 EMP，因為 host 沒有 EMP toolkit，且目前 Docker daemon 未啟動。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
 
 - `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
 - 主要 GC runtime 的 LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
-- `export_openfhe_lwe_int_material` 已能輸出單一 integer ciphertext 的真實 OpenFHE fields 與 `hsk.s_mod_q`，且 `OpenFHELWEIntDecryptCompareCircuit` 已能用這些 fields 做 plain Boolean evaluation；但它還沒接到主要 EMP GC runtime。
+- `export_openfhe_lwe_int_material` 已能輸出單一 integer ciphertext 的真實 OpenFHE fields 與 `hsk.s_mod_q`，且 `OpenFHELWEIntDecryptCompareCircuit` 已能用這些 fields 做 plain Boolean evaluation 和 minimal GC evaluation；但它還沒接到主要 EMP GC runtime。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。

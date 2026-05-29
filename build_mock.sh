@@ -101,6 +101,21 @@ build_evalbingate_circuit_dump() {
     ./dump_openfhe_eval_bin_gate_circuit "${FIXED_GC_ARTIFACT_DIR}"
 }
 
+build_v2_openfhe_gc_test() {
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} ${EXTRA_DEFS} -I. \
+        src/gc/boolean_circuit.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
+        ${EXTRA_SRCS} \
+        tests/openfhe_lwe_int_decrypt_compare_gc_test.cpp \
+        ${EXTRA_LIBS} \
+        -o openfhe_lwe_int_decrypt_compare_gc_test
+
+    echo "Build successful! Running v2 OpenFHE decrypt-compare GC test..."
+    echo "----------------------------------------"
+    ./openfhe_lwe_int_decrypt_compare_gc_test
+}
+
 case "${MODE}" in
     --legacy)
         build_legacy_demo
@@ -117,6 +132,9 @@ case "${MODE}" in
         ;;
     --evalbingate-circuit)
         build_evalbingate_circuit_dump
+        ;;
+    --v2-openfhe-gc-test)
+        build_v2_openfhe_gc_test
         ;;
     *)
         echo "unknown build_mock.sh mode: ${MODE}" >&2

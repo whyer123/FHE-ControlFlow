@@ -28,6 +28,9 @@
 - 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 fixed-hsk decryption arithmetic。
 - 新增 `export_openfhe_lwe_int_material`，用現有 OpenFHE `hpk/hsk` 直接產生單一 4-bit integer LWE ciphertext material：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。
 - 新增 `test_openfhe_lwe_int_material_export.sh`，驗證 OpenFHE Decrypt 與 exported-field `phase = b - <a,s> mod q`、`round_p(phase)` 手寫 Dec 一致。
+- 新增 `OpenFHELWEIntDecryptCompareCircuit`，把 OpenFHE 匯出的單一 integer LWE ciphertext fields 接成 v2 Boolean circuit：`GC{[Dec_hsk(x') <= Dec_hsk(b')]}` 的 circuit shape。
+- 新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 在 circuit/GC 裡以 selected-label constant 表示，而不是 public constant wire；text dump redaction 會顯示 `<selected-label>`。
+- 新增 `test_openfhe_lwe_int_decrypt_compare_circuit.sh`，用實際 OpenFHE 匯出的 `a'=Enc(3)`、`b'=Enc(7)` fields 驗證 Boolean circuit 輸出 `3<=7`、`7<=3`、`7<=7` 正確。
 - 新增 `test_controlled_reveal_source_no_placeholder.sh`，防止 lowering source 又退回 semantic gate decode 或 fake re-encrypt。
 - 新增 `export_openfhe_eval_key_material`，可把已生成的 OpenFHE `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays，供後續 standalone `.cpp` / GC lowering 使用。
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
@@ -44,9 +47,10 @@
 - 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
 - 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
-- 把 `export_openfhe_lwe_int_material` 的真實 OpenFHE integer ciphertext field bits 接到 v2 `GC{[Dec(x') <= Dec(b')]}` input，而不是目前 fixed runtime 的 mock `.bit` material。
+- 把 v2 `OpenFHELWEIntDecryptCompareCircuit` 接到 EMP GC artifact generation/evaluation，而不是只跑 plain Boolean circuit evaluation。
 - 把真實 OpenFHE ciphertext bit/word serialization 接到 GC input，而不是目前的 `MOCK_OPENFHE` `.bit`。
-- 把實際 OpenFHE `hsk.s_mod_q` 展成 v2 `Circuit_g` secret selected-label material；目前 exporter 已能輸出 setup-side hsk words，但主要 GC runtime 仍使用早期 toy 4-bit hsk。
+- 把 `export_openfhe_lwe_int_material` 的輸出格式改成機器可讀 material 檔，讓 v2 setup/runtime 不需要在測試中 hardcode exported fields。
+- 把 v2 circuit 的 `secret_constant_wires` 接到 serialized GC artifact 和 evaluator runtime material policy，確認 artifact 不含 clear `hsk` bit/value。
 - 把 `b'` 的真實 OpenFHE ciphertext/eval material 固定進 GC，而不是目前用 fixed plaintext bound bits 做 mock comparator。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
 - 加測試：comparator correctness、increment correctness、BooleanCircuit evaluation、EMP GC label flow。

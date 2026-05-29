@@ -7,7 +7,8 @@
 
 namespace {
 
-constexpr const char* kMagic = "FHE_CIRCUIT_SHAPE_V1";
+constexpr const char* kMagic = "FHE_CIRCUIT_SHAPE_V2";
+constexpr const char* kLegacyMagic = "FHE_CIRCUIT_SHAPE_V1";
 
 void Require(bool condition, const std::string& message) {
     if (!condition) {
@@ -77,6 +78,14 @@ void WriteBooleanCircuitShape(const BooleanCircuit& circuit,
     std::sort(constant_wires.begin(), constant_wires.end());
     WriteWireVector(out, constant_wires);
 
+    std::vector<WireId> secret_constant_wires;
+    secret_constant_wires.reserve(circuit.secret_constant_wires.size());
+    for (const auto& constant : circuit.secret_constant_wires) {
+        secret_constant_wires.push_back(constant.first);
+    }
+    std::sort(secret_constant_wires.begin(), secret_constant_wires.end());
+    WriteWireVector(out, secret_constant_wires);
+
     WriteU64(out, circuit.wires.size());
     for (const auto& wire : circuit.wires) {
         WriteU64(out, wire.id);
@@ -99,7 +108,9 @@ BooleanCircuit ReadBooleanCircuitShape(const std::string& path) {
     Require(in.good(), "failed to open circuit shape for reading: " + path);
 
     const auto magic = ReadString(in);
-    Require(magic == kMagic, "invalid circuit shape magic: " + path);
+    Require(magic == kMagic || magic == kLegacyMagic,
+            "invalid circuit shape magic: " + path);
+    const bool has_secret_constants = magic == kMagic;
 
     BooleanCircuit circuit;
     circuit.name = ReadString(in);
@@ -109,6 +120,11 @@ BooleanCircuit ReadBooleanCircuitShape(const std::string& path) {
 
     for (const auto wire : ReadWireVector(in)) {
         circuit.constant_wires.emplace(wire, false);
+    }
+    if (has_secret_constants) {
+        for (const auto wire : ReadWireVector(in)) {
+            circuit.secret_constant_wires.emplace(wire, false);
+        }
     }
 
     const auto wire_count = ReadU64(in);

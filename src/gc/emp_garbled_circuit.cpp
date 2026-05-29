@@ -95,6 +95,13 @@ EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
             constant.first,
             constant.second ? LabelOne(zero, artifact.delta) : zero);
     }
+    for (const auto& constant : circuit.secret_constant_wires) {
+        auto zero = RandomBlock();
+        zero_labels.emplace(constant.first, zero);
+        artifact.constant_labels.emplace(
+            constant.first,
+            constant.second ? LabelOne(zero, artifact.delta) : zero);
+    }
 
     for (const auto& gate : circuit.gates) {
         emp::block output_zero;

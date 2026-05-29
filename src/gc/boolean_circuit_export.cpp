@@ -3,14 +3,15 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 
 namespace {
 
 std::vector<std::pair<WireId, bool>> SortedConstants(
-    const BooleanCircuit& circuit) {
+    const std::unordered_map<WireId, bool>& constants_map) {
     std::vector<std::pair<WireId, bool>> constants(
-        circuit.constant_wires.begin(), circuit.constant_wires.end());
+        constants_map.begin(), constants_map.end());
     std::sort(constants.begin(), constants.end(),
               [](const auto& lhs, const auto& rhs) {
                   return lhs.first < rhs.first;
@@ -41,13 +42,27 @@ std::string BooleanCircuitToText(const BooleanCircuit& circuit,
     out << "\n";
 
     out << "[constant_wires]\n";
-    for (const auto& constant : SortedConstants(circuit)) {
+    for (const auto& constant : SortedConstants(circuit.constant_wires)) {
         out << "  w" << constant.first << " "
             << circuit.Wire(constant.first).name << " = ";
         if (redact_constant_values) {
             out << "<selected-label>";
         } else {
             out << (constant.second ? 1 : 0);
+        }
+        out << "\n";
+    }
+    out << "\n";
+
+    out << "[secret_constant_wires]\n";
+    for (const auto& constant :
+         SortedConstants(circuit.secret_constant_wires)) {
+        out << "  w" << constant.first << " "
+            << circuit.Wire(constant.first).name << " = ";
+        if (redact_constant_values) {
+            out << "<selected-label>";
+        } else {
+            out << "<secret>";
         }
         out << "\n";
     }

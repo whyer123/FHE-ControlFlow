@@ -33,6 +33,15 @@ WireId BooleanCircuitBuilder::AddConstantWire(const std::string& name, bool valu
     return id;
 }
 
+WireId BooleanCircuitBuilder::AddSecretConstantWire(const std::string& name,
+                                                    bool value) {
+    const WireId id = next_wire_id_++;
+    circuit_.wires.push_back({id, name});
+    circuit_.secret_constant_wires.emplace(id, value);
+    wire_index_[id] = circuit_.wires.size() - 1;
+    return id;
+}
+
 WireId BooleanCircuitBuilder::AddGate(BitGateKind kind,
                                       const std::vector<WireId>& inputs,
                                       const std::string& output_name) {

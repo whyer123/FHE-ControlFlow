@@ -35,6 +35,7 @@ struct BooleanCircuit {
     std::vector<WireId> input_wires;
     std::vector<WireId> output_wires;
     std::unordered_map<WireId, bool> constant_wires;
+    std::unordered_map<WireId, bool> secret_constant_wires;
     std::vector<CircuitWire> wires;
     std::vector<CircuitGate> gates;
 
@@ -47,6 +48,7 @@ public:
 
     WireId AddInputWire(const std::string& name);
     WireId AddConstantWire(const std::string& name, bool value);
+    WireId AddSecretConstantWire(const std::string& name, bool value);
     WireId AddGate(BitGateKind kind, const std::vector<WireId>& inputs,
                    const std::string& output_name);
     void AddOutputWire(WireId wire);

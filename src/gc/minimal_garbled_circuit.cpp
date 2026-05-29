@@ -68,6 +68,11 @@ GarbledCircuitArtifact MinimalGarbledCircuit::Garble(
             constant.first,
             wire_labels.at(constant.first).labels[constant.second ? 1 : 0]);
     }
+    for (const auto& constant : circuit.secret_constant_wires) {
+        artifact.constant_labels.emplace(
+            constant.first,
+            wire_labels.at(constant.first).labels[constant.second ? 1 : 0]);
+    }
 
     for (const auto wire : circuit.output_wires) {
         const auto& labels = wire_labels.at(wire);

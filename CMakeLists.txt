@@ -121,6 +121,15 @@ add_executable(openfhe_lwe_int_runtime_demo
     ${GC_BACKEND_SOURCES}
 )
 
+add_executable(audit_openfhe_lwe_int_runtime_boundary
+    tools/audit_openfhe_lwe_int_runtime_boundary.cpp
+    src/gc/active_garbled_circuit_io.cpp
+    src/gc/boolean_circuit.cpp
+    src/gc/boolean_circuit_io.cpp
+    src/gc/openfhe_lwe_int_material.cpp
+    ${GC_BACKEND_SOURCES}
+)
+
 add_executable(export_openfhe_eval_key_material
     tools/export_openfhe_eval_key_material.cpp
 )
@@ -171,7 +180,7 @@ target_link_libraries(dump_openfhe_eval_bin_gate_circuit
 )
 
 if(USE_EMP_GC)
-    foreach(GC_TARGET demo_loop setup_fixed_gc_material setup_openfhe_lwe_int_gc_material openfhe_lwe_int_runtime_demo openfhe_lwe_int_decrypt_compare_gc_test)
+    foreach(GC_TARGET demo_loop setup_fixed_gc_material setup_openfhe_lwe_int_gc_material openfhe_lwe_int_runtime_demo audit_openfhe_lwe_int_runtime_boundary openfhe_lwe_int_decrypt_compare_gc_test)
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
             target_compile_options(${GC_TARGET} PRIVATE -march=armv8-a+simd+crypto+crc)
         elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")

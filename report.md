@@ -595,13 +595,21 @@ bash tests/test_openfhe_lwe_int_runtime_demo.sh
 
 這個測試會檢查 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並確認 evaluator runtime 能只靠 `a'`、`b'`、`one'`、circuit shape、GC artifact 跑出 `1,1,1,1,1,0`。
 
+測試中也會執行：
+
+```text
+audit_openfhe_lwe_int_runtime_boundary
+```
+
+這個 audit 會讀 full setup material 作為正向對照，確認 full material 確實含有 `hsk.s_raw`、`hsk.s_mod_q` 和 `manual_dec`；接著檢查 runtime directory 沒有這些 setup-only field、沒有 clear plaintext field、沒有 `hpk/hsk` key file reference。它也會讀 serialized circuit shape，確認 secret constants 只剩 wire ids，readback 後沒有 secret values。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
 
 - 舊的 `MOCK_OPENFHE` / fixed-bound runtime path 仍存在，主要作為早期比較用；v2 OpenFHE integer LWE runtime 已改用真實 OpenFHE 匯出的 ciphertext fields。
 - v2 runtime 目前使用 OpenFHE TOY/test key material，還不是 production security parameters。
-- v2 runtime 的 GC artifact 已經把 `hsk.s_mod_q` 變成 selected labels，但還需要更嚴格的 binary artifact audit，確認 artifact 不含 clear `hsk` 數值。
+- v2 runtime 的 GC artifact 已經把 `hsk.s_mod_q` 變成 selected labels，並新增 serialization boundary audit；但這不是 reusable GC 的密碼學安全證明。
 - v2 runtime 的 `x' <- x' + one'` 是 integer LWE ciphertext component-wise addition；如果之後要回到 bit-level OpenFHE `EvalBinGate` loop update，仍要處理 evaluation keys / bootstrapping。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。

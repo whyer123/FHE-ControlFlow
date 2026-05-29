@@ -14,6 +14,7 @@ cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release >/dev/null
 cmake --build build-local \
     --target export_openfhe_lwe_int_material \
     --target setup_openfhe_lwe_int_gc_material \
+    --target audit_openfhe_lwe_int_runtime_boundary \
     --target openfhe_lwe_int_runtime_demo \
     --parallel 2 >/dev/null
 
@@ -22,6 +23,10 @@ cmake --build build-local \
     "$full_material" >/dev/null
 
 ./build-local/setup_openfhe_lwe_int_gc_material \
+    "$full_material" \
+    "$runtime_dir" >/dev/null
+
+./build-local/audit_openfhe_lwe_int_runtime_boundary \
     "$full_material" \
     "$runtime_dir" >/dev/null
 

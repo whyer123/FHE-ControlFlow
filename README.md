@@ -141,6 +141,12 @@ Run it locally:
 bash tests/test_openfhe_lwe_int_runtime_demo.sh
 ```
 
+That test also runs `audit_openfhe_lwe_int_runtime_boundary`, which checks that
+the evaluator runtime directory does not contain setup-only fields such as
+`hsk.s_raw`, `hsk.s_mod_q`, `manual_dec`, clear plaintext fields, or `hpk/hsk`
+key-file references. It also verifies that the serialized circuit shape keeps
+only secret wire ids, not secret values.
+
 Expected runtime predicate sequence for the fixed demo values is:
 
 ```text

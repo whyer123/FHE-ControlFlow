@@ -177,6 +177,10 @@ as `openfhe_lwe_int_runtime_material_v1`, so evaluator-side tooling rejects
 ad-hoc or stale material files instead of silently parsing them.
 The setup tool also rejects wraparound-unsafe demo loops: this first runtime
 version requires `one'=Enc(1)`, and when `a <= b` it requires `b + 1 < p`.
+It also decrypts the setup-side encrypted increment chain and rejects
+noise-unsafe material where repeated `x' = x' + one'` no longer decodes as
+`a, a+1, ..., b+1`. In that case client setup should re-export fresh
+ciphertexts before producing the runtime GC artifact.
 
 This demo implements:
 
@@ -198,6 +202,18 @@ OpenFHE parameter set, use the keygen tool with an explicit paramset:
 The plaintext domain remains `p=16` for the first loop demo; the selected
 paramset controls the OpenFHE LWE key/ciphertext parameters. The old
 fixed-bound mock path remains for comparison.
+
+The checked opt-in STD128 path can be run with:
+
+```bash
+RUN_STD128_OPENFHE_TEST=1 \
+  bash tests/test_openfhe_lwe_int_std128_runtime_demo.sh
+```
+
+On the current local OpenFHE build this produced `n=556`, `q=2048`, `12254`
+runtime public input wires, a roughly `571MB` temporary key directory, and a
+roughly `174MB` runtime directory (`110MB` GC artifact). The test retries
+material export if setup rejects a noisy increment chain.
 
 To run the same v2 runtime path through `build_mock.sh`, first generate a
 material file with OpenFHE, then pass it to the GC-only build:

@@ -128,6 +128,13 @@ setup 端先執行：
 
 第一步會用現有 OpenFHE `hpk/hsk` 產生 `a'`、`b'`、`one'`，並匯出 LWE fields 與 `hsk.s_mod_q`。第二步是 setup/client side：它用 `hsk.s_mod_q` 建立 Boolean circuit 和 GC artifact，然後輸出 runtime 需要的 sanitized material。
 
+setup 端現在也會先檢查兩個安全性/正確性邊界：
+
+- no-wrap：第一版要求 `one'=Enc(1)`，且若 `a<=b`，必須滿足 `b+1<p`。
+- noise-safe increment：setup 會用 `hsk.s_mod_q` 解密 `a'`，再連續加 `one'`，確認解出的 chain 正好是 `a,a+1,...,b,b+1`。如果某次 fresh ciphertext 的 noise 讓 chain 跳值，setup 會拒絕 material，client setup 需要重抽 ciphertext。
+
+目前已實測 `STD128` paramset 的 4-bit demo 可以跑通。實測資料：`n=556`、`q=2048`、runtime public input wires `12254`、臨時 key directory 約 `571MB`、runtime directory 約 `174MB`，其中 GC artifact 約 `110MB`。
+
 runtime 端只執行：
 
 ```bash

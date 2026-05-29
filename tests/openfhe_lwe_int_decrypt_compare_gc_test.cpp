@@ -108,15 +108,20 @@ int main(int argc, char** argv) {
     const auto params = material.CircuitParams();
     const auto circuit = OpenFHELWEIntDecryptCompareCircuit::Describe(params);
 
+    const bool expected_forward =
+        material.a_prime.plaintext <= material.b_prime.plaintext;
+    const bool expected_reverse =
+        material.b_prime.plaintext <= material.a_prime.plaintext;
+
     Require(EvaluatePredicate(circuit, material.a_prime, material.b_prime,
-                              params.modulus_bits),
-            "GC expected Dec(a') <= Dec(b') for OpenFHE-exported 3 <= 7");
-    Require(!EvaluatePredicate(circuit, material.b_prime, material.a_prime,
-                               params.modulus_bits),
-            "GC expected Dec(b') <= Dec(a') to be false for 7 <= 3");
+                              params.modulus_bits) == expected_forward,
+            "GC Dec(a') <= Dec(b') result did not match exported plaintexts");
+    Require(EvaluatePredicate(circuit, material.b_prime, material.a_prime,
+                              params.modulus_bits) == expected_reverse,
+            "GC Dec(b') <= Dec(a') result did not match exported plaintexts");
     Require(EvaluatePredicate(circuit, material.b_prime, material.b_prime,
                               params.modulus_bits),
-            "GC expected Dec(b') <= Dec(b') for 7 <= 7");
+            "GC expected Dec(b') <= Dec(b') for equal ciphertext inputs");
 
 #ifdef USE_EMP_GC
     std::cout << "OpenFHE LWE integer decrypt-compare EMP GC test passed.\n";

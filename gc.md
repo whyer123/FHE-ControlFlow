@@ -476,6 +476,7 @@ GC_f(x', b')
 3. 早期 LWE decryption circuit artifact 仍使用固定 demo key、固定 mask、固定 `q=16`；新的 v2 integer LWE circuit 已改用實際 OpenFHE TOY hsk 與 `q=512`。
 4. decode 已加入 `phase + q/(2p)` rounding shape；v2 runtime 已用實際 OpenFHE `a'`、`b'`、`one'` 跑完整 loop，但仍是 TOY/test parameters，不是 production security。
 5. 已新增 `export_openfhe_lwe_int_material`，可以用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。目前實測 TOY material 是 `n=64, q=512, p=16`，且手寫 exported-field Dec 與 OpenFHE Decrypt 一致。
+   這個工具也支援指定 demo plaintext，例如 `... mat.txt 8 7 1` 會產生 `Enc(8)`、`Enc(7)`、`Enc(1)`。
 6. 已新增 `OpenFHELWEIntDecryptCompareCircuit`，直接吃 OpenFHE 匯出的 integer ciphertext fields，建立 v2 Boolean circuit：
 
 ```text
@@ -489,6 +490,8 @@ GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 7 <= 3 -> 0
 7 <= 7 -> 1
 ```
+
+`test_openfhe_lwe_int_multiple_values.sh` 會用 OpenFHE exporter 產生多組 material，確認 circuit 和 GC 不只對固定 `3<=7` 正確，也對 `7<=3`、`8<=7` 等 false case 正確。
 
 7. 已新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 以 secret selected-label constant 進入 circuit，而不是 public constant wire；redacted text dump 只會顯示 `<selected-label>`。
 8. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；v2 integer runtime 則不使用 `hpk/hsk`，直接用 component-wise LWE addition 做 `x' <- x' + one'`。

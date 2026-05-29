@@ -32,6 +32,15 @@ uint64_t MulMod(uint64_t lhs, uint64_t rhs, uint64_t modulus) {
         (static_cast<unsigned __int128>(lhs) * rhs) % modulus);
 }
 
+uint64_t ParsePlaintext(const char* value,
+                        uint64_t plaintext_modulus,
+                        const std::string& label) {
+    const auto plaintext = std::stoull(value);
+    Require(plaintext < plaintext_modulus,
+            label + " must be smaller than plaintext modulus.");
+    return plaintext;
+}
+
 uint64_t DecodeWithExportedSecret(const LWEPrivateKey& hsk,
                                   const LWECiphertext& ciphertext,
                                   uint64_t plaintext_modulus) {
@@ -116,6 +125,9 @@ void WriteCiphertextWithDec(std::ostream& out,
 
 void WriteManifest(const std::filesystem::path& path,
                    uint64_t plaintext_modulus,
+                   uint64_t a_plaintext,
+                   uint64_t b_plaintext,
+                   uint64_t one_plaintext,
                    const LWEPrivateKey& hsk,
                    const LWECiphertext& a_prime,
                    const LWECiphertext& b_prime,
@@ -140,11 +152,11 @@ void WriteManifest(const std::filesystem::path& path,
     WriteVector(out, "hsk.s_mod_q", switched_secret);
     out << "\n";
 
-    WriteCiphertextWithDec(out, "a_prime", hsk, a_prime, 3,
+    WriteCiphertextWithDec(out, "a_prime", hsk, a_prime, a_plaintext,
                            plaintext_modulus);
-    WriteCiphertextWithDec(out, "b_prime", hsk, b_prime, 7,
+    WriteCiphertextWithDec(out, "b_prime", hsk, b_prime, b_plaintext,
                            plaintext_modulus);
-    WriteCiphertextWithDec(out, "one_prime", hsk, one_prime, 1,
+    WriteCiphertextWithDec(out, "one_prime", hsk, one_prime, one_plaintext,
                            plaintext_modulus);
 }
 
@@ -157,6 +169,20 @@ int main(int argc, char** argv) {
     const std::filesystem::path output_path =
         argc > 2 ? std::filesystem::path(argv[2])
                  : key_dir / "v2_lwe_integer_material.txt";
+
+    constexpr uint64_t kPlaintextModulus = 16;
+    Require(argc == 1 || argc == 2 || argc == 3 || argc == 5 || argc == 6,
+            "usage: export_openfhe_lwe_int_material [key-dir] [output-path] "
+            "[a_plaintext b_plaintext [one_plaintext]]");
+    const uint64_t a_plaintext =
+        argc > 3 ? ParsePlaintext(argv[3], kPlaintextModulus, "a_plaintext")
+                 : 3;
+    const uint64_t b_plaintext =
+        argc > 4 ? ParsePlaintext(argv[4], kPlaintextModulus, "b_plaintext")
+                 : 7;
+    const uint64_t one_plaintext =
+        argc > 5 ? ParsePlaintext(argv[5], kPlaintextModulus, "one_plaintext")
+                 : 1;
 
     BinFHEContext cc;
     LWEPublicKey hpk;
@@ -191,15 +217,15 @@ int main(int argc, char** argv) {
     eval_keys.Pkey = hpk;
     cc.BTKeyLoad(eval_keys);
 
-    constexpr uint64_t kPlaintextModulus = 16;
-    auto a_prime = EncryptVerifyAndExport(cc, hpk, hsk, 3,
+    auto a_prime = EncryptVerifyAndExport(cc, hpk, hsk, a_plaintext,
                                           kPlaintextModulus, "a_prime");
-    auto b_prime = EncryptVerifyAndExport(cc, hpk, hsk, 7,
+    auto b_prime = EncryptVerifyAndExport(cc, hpk, hsk, b_plaintext,
                                           kPlaintextModulus, "b_prime");
-    auto one_prime = EncryptVerifyAndExport(cc, hpk, hsk, 1,
+    auto one_prime = EncryptVerifyAndExport(cc, hpk, hsk, one_plaintext,
                                             kPlaintextModulus, "one_prime");
 
-    WriteManifest(output_path, kPlaintextModulus, hsk,
+    WriteManifest(output_path, kPlaintextModulus,
+                  a_plaintext, b_plaintext, one_plaintext, hsk,
                   a_prime, b_prime, one_prime);
 
     std::cout << "Exported OpenFHE LWE integer material to "

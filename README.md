@@ -154,6 +154,19 @@ Predicate sequence: 1,1,1,1,1,0
 Encrypted loop iterations executed: 5
 ```
 
+The exporter also accepts explicit demo plaintexts, so the same circuit/GC path
+can be tested against multiple OpenFHE-generated ciphertext pairs:
+
+```bash
+./build-local/export_openfhe_lwe_int_material \
+  demo_keys/openfhe_binfhe_demo_keypair \
+  /tmp/v2_lwe_integer_material_8_7.txt \
+  8 7 1
+```
+
+`bash tests/test_openfhe_lwe_int_multiple_values.sh` exercises several such
+pairs, including false cases like `8 <= 7`.
+
 This demo implements:
 
 ```text

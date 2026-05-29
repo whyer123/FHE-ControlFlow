@@ -555,6 +555,20 @@ OpenFHE Decrypt(ct) == exported-field Dec_hsk(ct)
 
 這代表 OpenFHE 真實 LWE ciphertext / secret key 已經能被抽成之後 Boolean circuit lowering 需要的資料格式。
 
+`export_openfhe_lwe_int_material` 現在也支援指定 demo plaintext：
+
+```text
+export_openfhe_lwe_int_material <key-dir> <output-path> <a> <b> [one]
+```
+
+例如：
+
+```text
+export_openfhe_lwe_int_material demo_keys/openfhe_binfhe_demo_keypair /tmp/mat_8_7.txt 8 7 1
+```
+
+這會用同一組 OpenFHE `hpk/hsk` 重新產生 `a'=Enc(8)`、`b'=Enc(7)`、`one'=Enc(1)`。`test_openfhe_lwe_int_multiple_values.sh` 會用這個介面驗證多組 true/false comparison，而不是只驗固定 `3<=7`。
+
 目前也已新增 `OpenFHELWEIntDecryptCompareCircuit`，將上述 fields 接進 v2 Boolean circuit：
 
 ```text

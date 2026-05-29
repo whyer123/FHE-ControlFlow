@@ -122,15 +122,20 @@ int main(int argc, char** argv) {
     Require(circuit.secret_constant_wires.size() == params.dimension * 4U,
             "expected duplicated hsk nonzero/sign secret constants per decrypt");
 
+    const bool expected_forward =
+        material.a_prime.plaintext <= material.b_prime.plaintext;
+    const bool expected_reverse =
+        material.b_prime.plaintext <= material.a_prime.plaintext;
+
     Require(EvaluateCompare(circuit, material.a_prime, material.b_prime,
-                            params.modulus_bits),
-            "expected Dec(a') <= Dec(b') for OpenFHE-exported 3 <= 7");
-    Require(!EvaluateCompare(circuit, material.b_prime, material.a_prime,
-                             params.modulus_bits),
-            "expected Dec(b') <= Dec(a') to be false for 7 <= 3");
+                            params.modulus_bits) == expected_forward,
+            "Dec(a') <= Dec(b') result did not match exported plaintexts");
+    Require(EvaluateCompare(circuit, material.b_prime, material.a_prime,
+                            params.modulus_bits) == expected_reverse,
+            "Dec(b') <= Dec(a') result did not match exported plaintexts");
     Require(EvaluateCompare(circuit, material.b_prime, material.b_prime,
                             params.modulus_bits),
-            "expected Dec(b') <= Dec(b') for 7 <= 7");
+            "expected Dec(b') <= Dec(b') for equal ciphertext inputs");
 
     std::cout << "OpenFHE LWE integer decrypt-compare circuit test passed.\n";
     return EXIT_SUCCESS;

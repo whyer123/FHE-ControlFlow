@@ -27,12 +27,14 @@
 - 移除 lowering source 裡「先解出 gate bit 再假重加密」的 semantic shortcut，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的 OpenFHE gate/bootstrap 資料流骨架。
 - 新增 `openfhe_controlled_reveal_reference_test`，不 link OpenFHE，直接用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證 fixed-hsk decryption arithmetic。
 - 新增 `export_openfhe_lwe_int_material`，用現有 OpenFHE `hpk/hsk` 直接產生單一 4-bit integer LWE ciphertext material：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。
+- `export_openfhe_lwe_int_material` 支援 optional `a_plaintext b_plaintext one_plaintext` 參數，可用同一組 OpenFHE keypair 產生多組 LWE integer ciphertext fixture。
 - 新增 `test_openfhe_lwe_int_material_export.sh`，驗證 OpenFHE Decrypt 與 exported-field `phase = b - <a,s> mod q`、`round_p(phase)` 手寫 Dec 一致。
 - 新增 `OpenFHELWEIntDecryptCompareCircuit`，把 OpenFHE 匯出的單一 integer LWE ciphertext fields 接成 v2 Boolean circuit：`GC{[Dec_hsk(x') <= Dec_hsk(b')]}` 的 circuit shape。
 - 新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 在 circuit/GC 裡以 selected-label constant 表示，而不是 public constant wire；text dump redaction 會顯示 `<selected-label>`。
 - 新增 `OpenFHELWEIntMaterial` parser，讓 v2 tests/runtime 可以讀取 `export_openfhe_lwe_int_material` 輸出的 material 檔，不再手抄 OpenFHE ciphertext fields。
 - 新增 `test_openfhe_lwe_int_decrypt_compare_circuit.sh`，每次先用 OpenFHE exporter 產生臨時 `a'=Enc(3)`、`b'=Enc(7)` material，再讀檔驗證 Boolean circuit 輸出 `3<=7`、`7<=3`、`7<=7` 正確。
 - 新增 `test_openfhe_lwe_int_decrypt_compare_gc.sh`，同樣先動態產生 OpenFHE material，再將 v2 circuit 做成 garbled artifact 並 evaluate；預設使用 in-repo minimal GC backend。
+- 新增 `test_openfhe_lwe_int_multiple_values.sh`，用 OpenFHE exporter 產生多組 `a'、b'`，驗證 v2 Boolean circuit 和 GC 對 `0<=0`、`0<=15`、`7<=3`、`8<=7`、`15<=15` 都和 exported plaintext relation 一致。
 - 新增 `build_mock.sh --v2-openfhe-gc-test <material>`，讓 Docker `gc_mock` 可在 `USE_EMP_GC=1` 時用 EMP half-gates 跑同一個 v2 OpenFHE decrypt-compare GC 測試。
 - 修正 v2 plaintext comparator 的 MSB-first 邏輯，改成 tracking `prefix_equal`，避免 `8..14 <= 7` 被錯判為 true。
 - 新增 `setup_openfhe_lwe_int_gc_material`，setup 端讀完整 OpenFHE material 和 `hsk.s_mod_q`，輸出 v2 circuit shape、GC artifact、redacted circuit dump、以及不含 `hsk`/明文值的 runtime material。

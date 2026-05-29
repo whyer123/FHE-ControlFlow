@@ -224,6 +224,14 @@ docker-compose run --rm gc_mock \
   artifacts/openfhe_lwe_int_runtime_docker_tmp
 ```
 
+Alternatively, use the combined OpenFHE + EMP service. It generates the
+OpenFHE LWE integer material and then runs the EMP-backed v2 runtime in the
+same container:
+
+```bash
+docker-compose run --rm openfhe_emp_v2_runtime
+```
+
 跑完整 OpenFHE demo：
 
 ```bash

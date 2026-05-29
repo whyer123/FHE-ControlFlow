@@ -14,3 +14,34 @@ services:
     volumes:
       - .:/app
     command: bash -lc "./build_mock.sh --fixed-all"
+
+  openfhe_emp_v2_runtime:
+    build:
+      context: .
+      target: openfhe-emp-runtime
+    volumes:
+      - .:/app
+    command: >
+      bash -lc "set -euo pipefail;
+      cmake -S . -B build-emp -DCMAKE_BUILD_TYPE=Release -DUSE_EMP_GC=ON;
+      cmake --build build-emp
+      --target export_openfhe_lwe_int_material
+      --target setup_openfhe_lwe_int_gc_material
+      --target audit_openfhe_lwe_int_runtime_boundary
+      --target openfhe_lwe_int_runtime_demo
+      --parallel 2;
+      mkdir -p /tmp/openfhe_emp_v2;
+      ./build-emp/export_openfhe_lwe_int_material
+      demo_keys/openfhe_binfhe_demo_keypair
+      /tmp/openfhe_emp_v2/material.txt;
+      ./build-emp/setup_openfhe_lwe_int_gc_material
+      /tmp/openfhe_emp_v2/material.txt
+      /tmp/openfhe_emp_v2/runtime;
+      ./build-emp/audit_openfhe_lwe_int_runtime_boundary
+      /tmp/openfhe_emp_v2/material.txt
+      /tmp/openfhe_emp_v2/runtime;
+      ./build-emp/openfhe_lwe_int_runtime_demo
+      /tmp/openfhe_emp_v2/runtime
+      | tee /tmp/openfhe_emp_v2/runtime_output.txt;
+      grep -q 'Predicate sequence: 1,1,1,1,1,0'
+      /tmp/openfhe_emp_v2/runtime_output.txt"

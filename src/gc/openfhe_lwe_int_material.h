@@ -30,4 +30,29 @@ struct OpenFHELWEIntMaterial {
     OpenFHELWEIntCircuitParams CircuitParams() const;
 };
 
+struct OpenFHELWEIntRuntimeCiphertextMaterial {
+    size_t dimension = 0;
+    uint64_t ciphertext_modulus = 0;
+    uint64_t plaintext_modulus = 0;
+    uint64_t body = 0;
+    std::vector<uint64_t> a;
+};
+
+struct OpenFHELWEIntRuntimeMaterial {
+    size_t logical_plaintext_bits = 0;
+    uint64_t plaintext_modulus = 0;
+    OpenFHELWEIntRuntimeCiphertextMaterial a_prime;
+    OpenFHELWEIntRuntimeCiphertextMaterial b_prime;
+    OpenFHELWEIntRuntimeCiphertextMaterial one_prime;
+
+    size_t ModulusBits() const;
+};
+
 OpenFHELWEIntMaterial ReadOpenFHELWEIntMaterial(const std::string& path);
+OpenFHELWEIntRuntimeMaterial ToRuntimeMaterial(
+    const OpenFHELWEIntMaterial& material);
+void WriteOpenFHELWEIntRuntimeMaterial(
+    const OpenFHELWEIntRuntimeMaterial& material,
+    const std::string& path);
+OpenFHELWEIntRuntimeMaterial ReadOpenFHELWEIntRuntimeMaterial(
+    const std::string& path);

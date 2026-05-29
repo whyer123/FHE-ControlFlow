@@ -34,6 +34,10 @@
 - 新增 `test_openfhe_lwe_int_decrypt_compare_circuit.sh`，每次先用 OpenFHE exporter 產生臨時 `a'=Enc(3)`、`b'=Enc(7)` material，再讀檔驗證 Boolean circuit 輸出 `3<=7`、`7<=3`、`7<=7` 正確。
 - 新增 `test_openfhe_lwe_int_decrypt_compare_gc.sh`，同樣先動態產生 OpenFHE material，再將 v2 circuit 做成 garbled artifact 並 evaluate；預設使用 in-repo minimal GC backend。
 - 新增 `build_mock.sh --v2-openfhe-gc-test <material>`，讓 Docker `gc_mock` 可在 `USE_EMP_GC=1` 時用 EMP half-gates 跑同一個 v2 OpenFHE decrypt-compare GC 測試。
+- 修正 v2 plaintext comparator 的 MSB-first 邏輯，改成 tracking `prefix_equal`，避免 `8..14 <= 7` 被錯判為 true。
+- 新增 `setup_openfhe_lwe_int_gc_material`，setup 端讀完整 OpenFHE material 和 `hsk.s_mod_q`，輸出 v2 circuit shape、GC artifact、redacted circuit dump、以及不含 `hsk`/明文值的 runtime material。
+- 新增 `openfhe_lwe_int_runtime_demo`，evaluator runtime 只載入 `a'`、`b'`、`one'`、circuit shape、GC artifact，執行 `GC_f(x', b') = GC{[Dec_hsk(x') <= Dec_hsk(b')]}` loop。
+- 新增 `test_openfhe_lwe_int_runtime_demo.sh`，驗證 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並跑出 predicate sequence `1,1,1,1,1,0` 和 iterations `5`。
 - 新增 `test_controlled_reveal_source_no_placeholder.sh`，防止 lowering source 又退回 semantic gate decode 或 fake re-encrypt。
 - 新增 `export_openfhe_eval_key_material`，可把已生成的 OpenFHE `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays，供後續 standalone `.cpp` / GC lowering 使用。
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
@@ -43,7 +47,7 @@
 ## 還差什麼
 
 - 把 `src/gc/openfhe_controlled_reveal_reference.cpp` 的完整邏輯 lowering 成 Boolean circuit。
-- 把目前 transitional fixed-bound `GC_f(x')` runtime 改回最終需要的 `GC_f(x', b')` runtime contract。
+- 把舊的 transitional fixed-bound `GC_f(x')` mock demo 從主要展示路徑降級或移除，避免和目前 v2 `GC_f(x', b')` runtime 混淆。
 - 把 `OpenFHEEvalBinGateCircuit` dump 裡的 `openfhe_bootstrap_placeholder` 換成真正 OpenFHE `BootstrapGateCore` 展開；目前 standalone source 已對齊 gate constants / coefficient-domain accumulator init，但 dump 工具仍只展開到 LWE additive pre-bootstrap 與 demo LUT placeholder。
 - 把 `openfhe_controlled_reveal_reference.cpp` 裡的 `ExternalProductCGGI`、`EvalAccCGGI`、`SwitchCTtoqn` 補成 OpenFHE 1.5.0 bit-accurate arithmetic；目前已移除 semantic shortcut，但 bootstrap/key-switch internals 仍是結構骨架。
 - 把 `export_openfhe_eval_key_material` 產生的 flat words 精確接回 `EvalAccCGGI` / `SwitchCTtoqn` 的索引 layout。
@@ -51,8 +55,7 @@
 - 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
 - 用 Docker `gc_mock` 跑 `./build_mock.sh --v2-openfhe-gc-test`，完成 EMP half-gates backend 驗證；本機目前因沒有 EMP headers/lib，只能跑 minimal backend。
-- 把真實 OpenFHE ciphertext bit/word serialization 接到 GC input，而不是目前的 `MOCK_OPENFHE` `.bit`。
-- 把 v2 circuit 的 `secret_constant_wires` 接到 serialized GC artifact 和 evaluator runtime material policy，確認 artifact 不含 clear `hsk` bit/value。
-- 把 `b'` 的真實 OpenFHE ciphertext/eval material 固定進 GC，而不是目前用 fixed plaintext bound bits 做 mock comparator。
+- 把 v2 runtime 的 garbled artifact 做更嚴格的 artifact secrecy audit，確認 artifact binary 不含 clear `hsk.s_mod_q` 數值。
+- 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。
 - 加測試：comparator correctness、increment correctness、BooleanCircuit evaluation、EMP GC label flow。

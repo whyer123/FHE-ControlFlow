@@ -286,24 +286,29 @@ WireId OpenFHELWEIntDecryptCompareCircuit::BuildLessOrEqual(
     Require(!lhs_bits.empty(), "BuildLessOrEqual expects at least one bit.");
 
     WireId greater = builder.AddConstantWire(prefix + "_gt_init", false);
+    WireId prefix_equal =
+        builder.AddConstantWire(prefix + "_prefix_eq_init", true);
     for (size_t offset = 0; offset < lhs_bits.size(); ++offset) {
         const size_t i = lhs_bits.size() - 1U - offset;
         const auto idx = std::to_string(i);
         auto not_rhs = builder.AddGate(BitGateKind::Not, {rhs_bits[i]},
                                        prefix + "_not_rhs_" + idx);
+        auto lhs_gt_bit = builder.AddGate(BitGateKind::And,
+                                          {lhs_bits[i], not_rhs},
+                                          prefix + "_lhs_gt_bit_" + idx);
         auto lhs_gt_here = builder.AddGate(BitGateKind::And,
-                                           {lhs_bits[i], not_rhs},
+                                           {prefix_equal, lhs_gt_bit},
                                            prefix + "_lhs_gt_here_" + idx);
         auto xor_bit = builder.AddGate(BitGateKind::Xor,
                                        {lhs_bits[i], rhs_bits[i]},
                                        prefix + "_xor_" + idx);
         auto eq_here = builder.AddGate(BitGateKind::Not, {xor_bit},
                                        prefix + "_eq_here_" + idx);
-        auto eq_and_greater = builder.AddGate(BitGateKind::And,
-                                              {eq_here, greater},
-                                              prefix + "_eq_and_gt_" + idx);
-        greater = BuildOr(builder, lhs_gt_here, eq_and_greater,
+        greater = BuildOr(builder, greater, lhs_gt_here,
                           prefix + "_gt_" + idx);
+        prefix_equal = builder.AddGate(BitGateKind::And,
+                                       {prefix_equal, eq_here},
+                                       prefix + "_prefix_eq_" + idx);
     }
     return builder.AddGate(BitGateKind::Not, {greater}, prefix + "_le");
 }

@@ -119,6 +119,44 @@ cmake --build build-local --target prepare_openfhe_constants evaluator_runtime_m
 
 `evaluator_runtime_material_check` loads only context/evaluation keys plus prepared ciphertext bits for `a'` and integer `one'`, then performs one encrypted state update with OpenFHE `EvalBinGate`.
 
+## OpenFHE LWE Integer GC Runtime Demo
+
+The current v2 path now uses OpenFHE-generated integer LWE ciphertext fields
+and the generated secret key material during setup:
+
+```text
+Setup side:
+  export_openfhe_lwe_int_material -> a'=Enc(3), b'=Enc(7), one'=Enc(1), hsk.s_mod_q
+  setup_openfhe_lwe_int_gc_material -> circuit shape + GC artifact + sanitized runtime material
+
+Evaluator runtime:
+  openfhe_lwe_int_runtime_demo
+  loads only a', b', one', circuit shape, and GC artifact
+  does not load hpk or hsk
+```
+
+Run it locally:
+
+```bash
+bash tests/test_openfhe_lwe_int_runtime_demo.sh
+```
+
+Expected runtime predicate sequence for the fixed demo values is:
+
+```text
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
+
+This demo implements:
+
+```text
+GC_f(x', b') = GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
+```
+
+It is still a demo using OpenFHE TOY/test material, not production security
+parameters. The old fixed-bound mock path remains for comparison.
+
 See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
 
 See `report.md` for a Chinese explanation of the demo loop output.

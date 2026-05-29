@@ -104,6 +104,78 @@ Encrypted loop iterations executed: 5
 
 這條 fixed runtime demo 目前仍使用 `MOCK_OPENFHE` bit material 連到 GC input；真實 OpenFHE ciphertext fields 尚未接進 GC input。
 
+## OpenFHE LWE Integer Runtime Demo
+
+目前 v2 路線已經有一條接近目標的 runtime demo。它不是舊的 fixed-bound mock，而是使用 OpenFHE 真的產生的單一 integer LWE ciphertext fields：
+
+```text
+a' = Enc_hpk(3)
+b' = Enc_hpk(7)
+one' = Enc_hpk(1)
+```
+
+setup 端先執行：
+
+```bash
+./build-local/export_openfhe_lwe_int_material \
+    demo_keys/openfhe_binfhe_demo_keypair \
+    /tmp/full_v2_lwe_integer_material.txt
+
+./build-local/setup_openfhe_lwe_int_gc_material \
+    /tmp/full_v2_lwe_integer_material.txt \
+    /tmp/openfhe_lwe_int_runtime
+```
+
+第一步會用現有 OpenFHE `hpk/hsk` 產生 `a'`、`b'`、`one'`，並匯出 LWE fields 與 `hsk.s_mod_q`。第二步是 setup/client side：它用 `hsk.s_mod_q` 建立 Boolean circuit 和 GC artifact，然後輸出 runtime 需要的 sanitized material。
+
+runtime 端只執行：
+
+```bash
+./build-local/openfhe_lwe_int_runtime_demo /tmp/openfhe_lwe_int_runtime
+```
+
+runtime 載入：
+
+```text
+openfhe_lwe_int_runtime_material.txt
+openfhe_lwe_int_circuit_shape.bin
+openfhe_lwe_int_gc_artifact.bin
+```
+
+runtime 不載入：
+
+```text
+hpk_lwe_public_key.*
+hsk_lwe_secret_key.*
+full_v2_lwe_integer_material.txt
+```
+
+這條 demo 的 GC 語意是：
+
+```text
+GC_f(x', b') = GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
+```
+
+loop 輸出應該是：
+
+```text
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
+
+也就是：
+
+```text
+3 <= 7 -> 1
+4 <= 7 -> 1
+5 <= 7 -> 1
+6 <= 7 -> 1
+7 <= 7 -> 1
+8 <= 7 -> 0
+```
+
+這裡的 `x' <- x' + one'` 是 LWE ciphertext fields 的 component-wise addition mod `q`。它符合目前 integer LWE demo 的加法語意，不需要 evaluator 持有 `hpk`。如果之後回到 bit-level OpenFHE `EvalBinGate` 更新，才需要另外處理 evaluation keys / bootstrapping。
+
 ## EvalBinGate Circuit Dump
 
 可以用下面指令直接看目前 `OpenFHE.EvalBinGate` 被展成 Boolean circuit 的樣子：
@@ -515,18 +587,27 @@ bash tests/test_openfhe_lwe_int_decrypt_compare_gc.sh
 
 且 `USE_EMP_GC=1`，則會使用 EMP half-gates backend。這代表 v2 circuit 已接到 GC artifact/evaluation API；但本機尚未驗證 EMP，因為 host 沒有 EMP toolkit，且目前 Docker daemon 未啟動。
 
+目前也新增 v2 runtime demo：
+
+```text
+bash tests/test_openfhe_lwe_int_runtime_demo.sh
+```
+
+這個測試會檢查 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並確認 evaluator runtime 能只靠 `a'`、`b'`、`one'`、circuit shape、GC artifact 跑出 `1,1,1,1,1,0`。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
 
-- `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
-- 主要 GC runtime 的 LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
-- `export_openfhe_lwe_int_material` 已能輸出單一 integer ciphertext 的真實 OpenFHE fields 與 `hsk.s_mod_q`，且 `OpenFHELWEIntDecryptCompareCircuit` 已能透過 material parser 讀取這些 fields 做 plain Boolean evaluation 和 minimal GC evaluation；但它還沒接到主要 EMP GC runtime。
+- 舊的 `MOCK_OPENFHE` / fixed-bound runtime path 仍存在，主要作為早期比較用；v2 OpenFHE integer LWE runtime 已改用真實 OpenFHE 匯出的 ciphertext fields。
+- v2 runtime 目前使用 OpenFHE TOY/test key material，還不是 production security parameters。
+- v2 runtime 的 GC artifact 已經把 `hsk.s_mod_q` 變成 selected labels，但還需要更嚴格的 binary artifact audit，確認 artifact 不含 clear `hsk` 數值。
+- v2 runtime 的 `x' <- x' + one'` 是 integer LWE ciphertext component-wise addition；如果之後要回到 bit-level OpenFHE `EvalBinGate` loop update，仍要處理 evaluation keys / bootstrapping。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。
 - in-repo Minimal GC backend 只保留為無 EMP 環境的 fallback，不是主要展示路徑。
-- Client setup 和 evaluator loop 還在同一個 executable，`GC_f` artifact 尚未寫檔或跨程序載入。
+- v2 setup 和 runtime 已拆成兩個 executable，但還不是完整 client/server packaging。
 - `demo_keys/future_demo_fhe_key_material.json` 是目前固定 demo key material 的描述，不是 production OpenFHE key serialization。
 
 所以目前 demo 證明的是 offline GC control-flow 的資料流，不是完整 OpenFHE production integration。

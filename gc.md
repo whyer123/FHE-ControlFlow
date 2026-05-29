@@ -481,7 +481,7 @@ GC_f(x', b')
 GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 ```
 
-目前測試已用 OpenFHE 匯出的 `a'=Enc(3)`、`b'=Enc(7)` fields 驗證 plain Boolean circuit evaluation：
+目前測試會先執行 `export_openfhe_lwe_int_material` 動態產生臨時 material 檔，再由 `OpenFHELWEIntMaterial` parser 讀回 `a'=Enc(3)`、`b'=Enc(7)`、`hsk.s_mod_q`，驗證 plain Boolean circuit evaluation：
 
 ```text
 3 <= 7 -> 1
@@ -491,7 +491,7 @@ GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 
 7. 已新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 以 secret selected-label constant 進入 circuit，而不是 public constant wire；redacted text dump 只會顯示 `<selected-label>`。
 8. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；但它尚未把真實 OpenFHE ciphertext bits 接到 GC input。
-9. v2 OpenFHE integer decrypt-compare circuit 已接到 garbled artifact/evaluation API。`test_openfhe_lwe_int_decrypt_compare_gc.sh` 目前在本機使用 in-repo minimal GC backend 驗證同一組 OpenFHE fields：
+9. v2 OpenFHE integer decrypt-compare circuit 已接到 garbled artifact/evaluation API。`test_openfhe_lwe_int_decrypt_compare_gc.sh` 目前會先產生新的 OpenFHE material，再在本機使用 in-repo minimal GC backend 驗證：
 
 ```text
 Dec(a') <= Dec(b') -> 1
@@ -499,7 +499,7 @@ Dec(b') <= Dec(a') -> 0
 Dec(b') <= Dec(b') -> 1
 ```
 
-Docker `gc_mock` 可用 `./build_mock.sh --v2-openfhe-gc-test` 跑同一測試的 EMP half-gates backend；本機目前沒有 EMP headers/lib，且 Docker daemon 未啟動，因此 EMP 驗證尚未完成。
+Docker `gc_mock` 可用 `./build_mock.sh --v2-openfhe-gc-test <material>` 跑同一測試的 EMP half-gates backend；本機目前沒有 EMP headers/lib，且 Docker daemon 未啟動，因此 EMP 驗證尚未完成。
 10. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 11. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 

@@ -3,7 +3,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build build-local --target openfhe_lwe_int_decrypt_compare_gc_test --parallel 2 >/dev/null
+out_dir="$(mktemp -d)"
+trap 'rm -rf "$out_dir"' EXIT
+material="$out_dir/v2_lwe_integer_material.txt"
 
-./build-local/openfhe_lwe_int_decrypt_compare_gc_test
+cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release >/dev/null
+cmake --build build-local \
+    --target export_openfhe_lwe_int_material \
+    --target openfhe_lwe_int_decrypt_compare_gc_test \
+    --parallel 2 >/dev/null
+
+./build-local/export_openfhe_lwe_int_material \
+    demo_keys/openfhe_binfhe_demo_keypair \
+    "$material" >/dev/null
+
+./build-local/openfhe_lwe_int_decrypt_compare_gc_test "$material"

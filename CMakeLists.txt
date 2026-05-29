@@ -124,6 +124,7 @@ add_executable(openfhe_lwe_int_decrypt_compare_circuit_test
     src/gc/boolean_circuit.cpp
     src/gc/boolean_circuit_export.cpp
     src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp
+    src/gc/openfhe_lwe_int_material.cpp
 )
 
 add_executable(openfhe_lwe_int_decrypt_compare_gc_test
@@ -131,6 +132,7 @@ add_executable(openfhe_lwe_int_decrypt_compare_gc_test
     src/gc/boolean_circuit.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp
+    src/gc/openfhe_lwe_int_material.cpp
     ${GC_BACKEND_SOURCES}
 )
 

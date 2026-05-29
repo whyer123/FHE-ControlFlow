@@ -30,9 +30,10 @@
 - 新增 `test_openfhe_lwe_int_material_export.sh`，驗證 OpenFHE Decrypt 與 exported-field `phase = b - <a,s> mod q`、`round_p(phase)` 手寫 Dec 一致。
 - 新增 `OpenFHELWEIntDecryptCompareCircuit`，把 OpenFHE 匯出的單一 integer LWE ciphertext fields 接成 v2 Boolean circuit：`GC{[Dec_hsk(x') <= Dec_hsk(b')]}` 的 circuit shape。
 - 新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 在 circuit/GC 裡以 selected-label constant 表示，而不是 public constant wire；text dump redaction 會顯示 `<selected-label>`。
-- 新增 `test_openfhe_lwe_int_decrypt_compare_circuit.sh`，用實際 OpenFHE 匯出的 `a'=Enc(3)`、`b'=Enc(7)` fields 驗證 Boolean circuit 輸出 `3<=7`、`7<=3`、`7<=7` 正確。
-- 新增 `test_openfhe_lwe_int_decrypt_compare_gc.sh`，將同一個 OpenFHE material-driven v2 circuit 做成 garbled artifact 並 evaluate，預設使用 in-repo minimal GC backend。
-- 新增 `build_mock.sh --v2-openfhe-gc-test`，讓 Docker `gc_mock` 可在 `USE_EMP_GC=1` 時用 EMP half-gates 跑同一個 v2 OpenFHE decrypt-compare GC 測試。
+- 新增 `OpenFHELWEIntMaterial` parser，讓 v2 tests/runtime 可以讀取 `export_openfhe_lwe_int_material` 輸出的 material 檔，不再手抄 OpenFHE ciphertext fields。
+- 新增 `test_openfhe_lwe_int_decrypt_compare_circuit.sh`，每次先用 OpenFHE exporter 產生臨時 `a'=Enc(3)`、`b'=Enc(7)` material，再讀檔驗證 Boolean circuit 輸出 `3<=7`、`7<=3`、`7<=7` 正確。
+- 新增 `test_openfhe_lwe_int_decrypt_compare_gc.sh`，同樣先動態產生 OpenFHE material，再將 v2 circuit 做成 garbled artifact 並 evaluate；預設使用 in-repo minimal GC backend。
+- 新增 `build_mock.sh --v2-openfhe-gc-test <material>`，讓 Docker `gc_mock` 可在 `USE_EMP_GC=1` 時用 EMP half-gates 跑同一個 v2 OpenFHE decrypt-compare GC 測試。
 - 新增 `test_controlled_reveal_source_no_placeholder.sh`，防止 lowering source 又退回 semantic gate decode 或 fake re-encrypt。
 - 新增 `export_openfhe_eval_key_material`，可把已生成的 OpenFHE `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays，供後續 standalone `.cpp` / GC lowering 使用。
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
@@ -51,7 +52,6 @@
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
 - 用 Docker `gc_mock` 跑 `./build_mock.sh --v2-openfhe-gc-test`，完成 EMP half-gates backend 驗證；本機目前因沒有 EMP headers/lib，只能跑 minimal backend。
 - 把真實 OpenFHE ciphertext bit/word serialization 接到 GC input，而不是目前的 `MOCK_OPENFHE` `.bit`。
-- 把 `export_openfhe_lwe_int_material` 的輸出格式改成機器可讀 material 檔，讓 v2 setup/runtime 不需要在測試中 hardcode exported fields。
 - 把 v2 circuit 的 `secret_constant_wires` 接到 serialized GC artifact 和 evaluator runtime material policy，確認 artifact 不含 clear `hsk` bit/value。
 - 把 `b'` 的真實 OpenFHE ciphertext/eval material 固定進 GC，而不是目前用 fixed plaintext bound bits 做 mock comparator。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。

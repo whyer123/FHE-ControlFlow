@@ -102,10 +102,18 @@ build_evalbingate_circuit_dump() {
 }
 
 build_v2_openfhe_gc_test() {
+    local material_path="${2:-demo_keys/openfhe_binfhe_demo_keypair/v2_lwe_integer_material.txt}"
+    if [[ ! -f "${material_path}" ]]; then
+        echo "missing v2 OpenFHE material file: ${material_path}" >&2
+        echo "run export_openfhe_lwe_int_material first or pass a material path." >&2
+        exit 1
+    fi
+
     g++ -std=c++17 ${EXTRA_CXXFLAGS} ${EXTRA_DEFS} -I. \
         src/gc/boolean_circuit.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
+        src/gc/openfhe_lwe_int_material.cpp \
         ${EXTRA_SRCS} \
         tests/openfhe_lwe_int_decrypt_compare_gc_test.cpp \
         ${EXTRA_LIBS} \
@@ -113,7 +121,7 @@ build_v2_openfhe_gc_test() {
 
     echo "Build successful! Running v2 OpenFHE decrypt-compare GC test..."
     echo "----------------------------------------"
-    ./openfhe_lwe_int_decrypt_compare_gc_test
+    ./openfhe_lwe_int_decrypt_compare_gc_test "${material_path}"
 }
 
 case "${MODE}" in
@@ -134,7 +142,7 @@ case "${MODE}" in
         build_evalbingate_circuit_dump
         ;;
     --v2-openfhe-gc-test)
-        build_v2_openfhe_gc_test
+        build_v2_openfhe_gc_test "$@"
         ;;
     *)
         echo "unknown build_mock.sh mode: ${MODE}" >&2

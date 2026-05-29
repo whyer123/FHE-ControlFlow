@@ -459,12 +459,37 @@ hsk = [1, 0, 1, 1]
 
 另外已新增 `export_openfhe_eval_key_material`，可以把固定 demo 的 `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays。實測 material 約 70MB，refresh key 有 `524288` 個 words，switch key A 有 `4915200` 個 words，switch key B 有 `76800` 個 words。
 
+另外已新增 `export_openfhe_lwe_int_material`，這是 v2 `GC{[Dec(x') <= Dec(b')]}` 路線的 OpenFHE material bridge。它會用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext，而不是 4 個 bit ciphertext：
+
+```text
+a' = Enc_hpk(3; p=16)
+b' = Enc_hpk(7; p=16)
+one' = Enc_hpk(1; p=16)
+```
+
+工具會匯出每個 ciphertext 的 `a` vector、`b` body、`q`、`p`，以及切到 ciphertext modulus 後的 `hsk.s_mod_q`。目前實測輸出是：
+
+```text
+n = 64
+q = 512
+p = 16
+```
+
+並且已驗證：
+
+```text
+OpenFHE Decrypt(ct) == exported-field Dec_hsk(ct)
+```
+
+這代表 OpenFHE 真實 LWE ciphertext / secret key 已經能被抽成之後 Boolean circuit lowering 需要的資料格式；尚未完成的是把這些 fields 接到 EMP GC 的 v2 decrypt-compare circuit。
+
 ## 目前仍是 mock 的部分
 
 目前仍是 mock 或 demo 化的部分：
 
 - `MOCK_OPENFHE` 的 ciphertext 只有 `.bit`，所以 demo 能直接把 encrypted state 的 bit 轉成 GC input labels；真實 OpenFHE ciphertext 還需要 serialization。
 - 主要 GC runtime 的 LWE decryption arithmetic 目前固定 `hsk=[1,0,1,1]`、`a=[3,5,6,1]`、`q=16`，不是從真實 OpenFHE key/ciphertext 動態生成。
+- `export_openfhe_lwe_int_material` 已能輸出單一 integer ciphertext 的真實 OpenFHE fields 與 `hsk.s_mod_q`，但這些 fields 還沒接到主要 GC runtime。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。

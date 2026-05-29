@@ -474,10 +474,11 @@ GC_f(x', b')
 2. fixed runtime 已經有 artifact serialization，但 mock runtime 使用的是 mock `a'`/`one'` bit material，不是真實 OpenFHE ciphertext fields。
 3. 早期 LWE decryption circuit artifact 仍使用固定 demo key、固定 mask、固定 `q=16`；新的 `src/gc/openfhe_controlled_reveal_reference.cpp` 已改用實際 OpenFHE TOY hsk 與 `q=512`，但尚未 lowering 成 GC artifact。
 4. decode 已加入 `phase + q/(2p)` rounding shape；reference source 已用實際 OpenFHE `Enc(1)` / `Enc(0)` ciphertext 驗證這段 decryption arithmetic，但主要 runtime 還沒接真實 OpenFHE ciphertext fields。
-5. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；但它尚未把真實 OpenFHE ciphertext bits 接到 GC input。
-6. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
-7. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
-8. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
+5. 已新增 `export_openfhe_lwe_int_material`，可以用現有 OpenFHE `hpk/hsk` 產生單一 integer ciphertext：`a'=Enc(3)`、`b'=Enc(7)`、`one'=Enc(1)`，並匯出 `a` vector、`b` body、`q`、`p`、`hsk.s_mod_q`。目前實測 TOY material 是 `n=64, q=512, p=16`，且手寫 exported-field Dec 與 OpenFHE Decrypt 一致。
+6. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；但它尚未把真實 OpenFHE ciphertext bits 接到 GC input。
+7. EMP half-gates backend 已經是真實 GC library path，但目前使用的是 relaxed/offline demo label 發放模型：evaluator 可以持有 public input 的所有 labels 和 output decode material。
+8. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
+9. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 
 ## Fixed OpenFHE evaluation key export
 

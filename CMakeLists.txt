@@ -107,6 +107,14 @@ target_link_libraries(export_openfhe_eval_key_material
     ${OpenFHE_LIBRARIES}
 )
 
+add_executable(export_openfhe_lwe_int_material
+    tools/export_openfhe_lwe_int_material.cpp
+)
+
+target_link_libraries(export_openfhe_lwe_int_material
+    ${OpenFHE_LIBRARIES}
+)
+
 add_executable(openfhe_controlled_reveal_reference_test
     tests/openfhe_controlled_reveal_reference_test.cpp
 )

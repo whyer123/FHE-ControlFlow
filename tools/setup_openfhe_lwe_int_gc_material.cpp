@@ -24,6 +24,17 @@ void Require(bool condition, const std::string& message) {
     }
 }
 
+void ValidateRuntimeLoopBounds(const OpenFHELWEIntMaterial& material) {
+    Require(material.one_prime.plaintext == 1,
+            "first v2 runtime demo requires one'=Enc(1).");
+    if (material.a_prime.plaintext <= material.b_prime.plaintext) {
+        Require(material.b_prime.plaintext + material.one_prime.plaintext <
+                    material.plaintext_modulus,
+                "wraparound-unsafe OpenFHE integer loop material: "
+                "b + one must stay below plaintext modulus.");
+    }
+}
+
 void WriteManifest(const std::filesystem::path& path,
                    const OpenFHELWEIntMaterial& material,
                    const BooleanCircuit& circuit) {
@@ -49,49 +60,55 @@ void WriteManifest(const std::filesystem::path& path,
 } // namespace
 
 int main(int argc, char** argv) {
-    Require(argc == 3,
-            "usage: setup_openfhe_lwe_int_gc_material <full-material.txt> <output-dir>");
+    try {
+        Require(argc == 3,
+                "usage: setup_openfhe_lwe_int_gc_material <full-material.txt> <output-dir>");
 
-    const auto full_material_path = std::filesystem::path(argv[1]);
-    const auto output_dir = std::filesystem::path(argv[2]);
-    std::filesystem::create_directories(output_dir);
+        const auto full_material_path = std::filesystem::path(argv[1]);
+        const auto output_dir = std::filesystem::path(argv[2]);
+        std::filesystem::create_directories(output_dir);
 
-    const auto material = ReadOpenFHELWEIntMaterial(full_material_path.string());
-    const auto params = material.CircuitParams();
-    const auto circuit = OpenFHELWEIntDecryptCompareCircuit::Describe(params);
+        const auto material = ReadOpenFHELWEIntMaterial(full_material_path.string());
+        ValidateRuntimeLoopBounds(material);
+        const auto params = material.CircuitParams();
+        const auto circuit = OpenFHELWEIntDecryptCompareCircuit::Describe(params);
 
-    const auto circuit_text =
-        output_dir / "openfhe_lwe_int_circuit_g_demo.txt";
-    const auto circuit_shape =
-        output_dir / "openfhe_lwe_int_circuit_shape.bin";
-    const auto artifact_path =
-        output_dir / "openfhe_lwe_int_gc_artifact.bin";
-    const auto runtime_material_path =
-        output_dir / "openfhe_lwe_int_runtime_material.txt";
+        const auto circuit_text =
+            output_dir / "openfhe_lwe_int_circuit_g_demo.txt";
+        const auto circuit_shape =
+            output_dir / "openfhe_lwe_int_circuit_shape.bin";
+        const auto artifact_path =
+            output_dir / "openfhe_lwe_int_gc_artifact.bin";
+        const auto runtime_material_path =
+            output_dir / "openfhe_lwe_int_runtime_material.txt";
 
-    WriteBooleanCircuitText(circuit, circuit_text.string(),
-                            true /* redact_constant_values */);
-    WriteBooleanCircuitShape(circuit, circuit_shape.string());
+        WriteBooleanCircuitText(circuit, circuit_text.string(),
+                                true /* redact_constant_values */);
+        WriteBooleanCircuitShape(circuit, circuit_shape.string());
 
 #ifdef USE_EMP_GC
-    EmpGarbledCircuit garbler;
+        EmpGarbledCircuit garbler;
 #else
-    MinimalGarbledCircuit garbler;
+        MinimalGarbledCircuit garbler;
 #endif
-    const auto artifact = garbler.Garble(circuit);
-    WriteActiveGarbledCircuitArtifact(artifact, artifact_path.string());
-    WriteOpenFHELWEIntRuntimeMaterial(ToRuntimeMaterial(material),
-                                      runtime_material_path.string());
-    WriteManifest(output_dir / "openfhe_lwe_int_runtime_manifest.md",
-                  material, circuit);
+        const auto artifact = garbler.Garble(circuit);
+        WriteActiveGarbledCircuitArtifact(artifact, artifact_path.string());
+        WriteOpenFHELWEIntRuntimeMaterial(ToRuntimeMaterial(material),
+                                          runtime_material_path.string());
+        WriteManifest(output_dir / "openfhe_lwe_int_runtime_manifest.md",
+                      material, circuit);
 
-    std::cout << "Prepared OpenFHE LWE integer GC runtime material in "
-              << output_dir.string() << "\n";
-    std::cout << "Circuit dump: " << circuit_text.string() << "\n";
-    std::cout << "Circuit shape: " << circuit_shape.string() << "\n";
-    std::cout << "GC artifact: " << artifact_path.string() << "\n";
-    std::cout << "Runtime material: " << runtime_material_path.string() << "\n";
-    std::cout << "Runtime public input wires: "
-              << circuit.input_wires.size() << "\n";
-    return EXIT_SUCCESS;
+        std::cout << "Prepared OpenFHE LWE integer GC runtime material in "
+                  << output_dir.string() << "\n";
+        std::cout << "Circuit dump: " << circuit_text.string() << "\n";
+        std::cout << "Circuit shape: " << circuit_shape.string() << "\n";
+        std::cout << "GC artifact: " << artifact_path.string() << "\n";
+        std::cout << "Runtime material: " << runtime_material_path.string() << "\n";
+        std::cout << "Runtime public input wires: "
+                  << circuit.input_wires.size() << "\n";
+        return EXIT_SUCCESS;
+    } catch (const std::exception& error) {
+        std::cerr << error.what() << "\n";
+        return EXIT_FAILURE;
+    }
 }

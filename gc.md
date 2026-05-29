@@ -494,6 +494,7 @@ GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 
 `test_openfhe_lwe_int_multiple_values.sh` 會用 OpenFHE exporter 產生多組 material，確認 circuit 和 GC 不只對固定 `3<=7` 正確，也對 `7<=3`、`8<=7` 等 false case 正確。
 `test_openfhe_lwe_int_runtime_multiple_values.sh` 會進一步跑完整 evaluator runtime loop，確認不同起訖值的 predicate sequence 和 iteration count 也正確。
+setup 端也會拒絕 wraparound-unsafe loop material：第一版 runtime 要求 `one'=Enc(1)`，且若 `a<=b`，必須有 `b+1 < p`。
 
 7. 已新增 `secret_constant_wires`，讓 `hsk.s_mod_q` 以 secret selected-label constant 進入 circuit，而不是 public constant wire；redacted text dump 只會顯示 `<selected-label>`。
 8. 已新增 OpenFHE runtime material check，能證明 evaluator 可只載入 context/evaluation keys、`a'`、integer `one'` 做一次 encrypted add；v2 integer runtime 則不使用 `hpk/hsk`，直接用 component-wise LWE addition 做 `x' <- x' + one'`。

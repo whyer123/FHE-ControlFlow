@@ -175,6 +175,8 @@ The setup-side material format is versioned as
 `openfhe_lwe_int_setup_material_v1`. Runtime material is separately versioned
 as `openfhe_lwe_int_runtime_material_v1`, so evaluator-side tooling rejects
 ad-hoc or stale material files instead of silently parsing them.
+The setup tool also rejects wraparound-unsafe demo loops: this first runtime
+version requires `one'=Enc(1)`, and when `a <= b` it requires `b + 1 < p`.
 
 This demo implements:
 

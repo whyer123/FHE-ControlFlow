@@ -639,6 +639,8 @@ bash tests/test_openfhe_lwe_int_runtime_multiple_values.sh
 8..7 -> predicate sequence 0
 ```
 
+因為目前 demo plaintext modulus 是 `p=16`，setup 端也新增了 no-wrap 檢查。第一版 runtime 只接受 `one'=Enc(1)`；若 `a<=b`，setup 要求 `b+1 < p`，否則像 `15..15` 會在 `15 -> 0` 後繞回並造成 loop 不再自然停止。`test_openfhe_lwe_int_runtime_rejects_wraparound.sh` 會確認這類 material 在 setup 階段被拒絕。
+
 測試中也會執行：
 
 ```text

@@ -163,6 +163,23 @@ GC_f(x', b') = GC{ [Dec_hsk(x') <= Dec_hsk(b')] }
 It is still a demo using OpenFHE TOY/test material, not production security
 parameters. The old fixed-bound mock path remains for comparison.
 
+To run the same v2 runtime path through `build_mock.sh`, first generate a
+material file with OpenFHE, then pass it to the GC-only build:
+
+```bash
+./build-local/export_openfhe_lwe_int_material \
+  demo_keys/openfhe_binfhe_demo_keypair \
+  /tmp/v2_lwe_integer_material.txt
+
+./build_mock.sh --v2-openfhe-runtime-demo \
+  /tmp/v2_lwe_integer_material.txt \
+  /tmp/openfhe_lwe_int_runtime
+```
+
+Inside the `gc_mock` Docker target the same command uses `USE_EMP_GC=1`, so it
+runs the v2 setup/runtime with the EMP half-gates backend instead of the local
+minimal fallback.
+
 See `gc.md` for a detailed Chinese walkthrough of the controlled reveal design and demo flow.
 
 See `report.md` for a Chinese explanation of the demo loop output.
@@ -189,6 +206,22 @@ docker-compose run --rm gc_mock
 ```text
 Evaluator runtime input policy: fixed GC_f(x')
 Evaluator runtime did not load hpk or hsk
+```
+
+For the v2 OpenFHE integer LWE runtime path, generate the material file first
+on an OpenFHE-enabled environment into the mounted repo, then run:
+
+```bash
+./build-local/export_openfhe_lwe_int_material \
+  demo_keys/openfhe_binfhe_demo_keypair \
+  artifacts/v2_lwe_integer_material.docker.tmp.txt
+```
+
+```bash
+docker-compose run --rm gc_mock \
+  ./build_mock.sh --v2-openfhe-runtime-demo \
+  artifacts/v2_lwe_integer_material.docker.tmp.txt \
+  artifacts/openfhe_lwe_int_runtime_docker_tmp
 ```
 
 跑完整 OpenFHE demo：

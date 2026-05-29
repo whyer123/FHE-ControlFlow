@@ -39,6 +39,8 @@
 - 新增 `openfhe_lwe_int_runtime_demo`，evaluator runtime 只載入 `a'`、`b'`、`one'`、circuit shape、GC artifact，執行 `GC_f(x', b') = GC{[Dec_hsk(x') <= Dec_hsk(b')]}` loop。
 - 新增 `test_openfhe_lwe_int_runtime_demo.sh`，驗證 runtime material 不含 `hsk`、不含 clear plaintext/manual decrypt fields，並跑出 predicate sequence `1,1,1,1,1,0` 和 iterations `5`。
 - 新增 `audit_openfhe_lwe_int_runtime_boundary`，結構化檢查 runtime directory 不含 `hsk.s_raw`、`hsk.s_mod_q`、`manual_dec`、clear plaintext field、`hpk/hsk` key file references，並確認 serialized circuit shape 只保留 secret wire ids、不保存 secret values。
+- 新增 `build_mock.sh --v2-openfhe-runtime-demo <material> <runtime-dir>`，讓同一條 v2 runtime demo 可以在本機 minimal GC 或 Docker `gc_mock` 的 EMP half-gates backend 下執行。
+- 新增 `test_build_mock_v2_openfhe_runtime_demo.sh`，驗證 build_mock v2 runtime 入口會 setup、audit、runtime 一次跑完並輸出 `1,1,1,1,1,0`。
 - 新增 `test_controlled_reveal_source_no_placeholder.sh`，防止 lowering source 又退回 semantic gate decode 或 fake re-encrypt。
 - 新增 `export_openfhe_eval_key_material`，可把已生成的 OpenFHE `eval_refresh_key.bin` / `eval_switch_key.bin` 匯出成 plain C++ integer arrays，供後續 standalone `.cpp` / GC lowering 使用。
 - 實測固定 demo eval-key material 大小：refresh key `524288` words；switch key A `4915200` words；switch key B `76800` words。產生的 C++ material 約 `70MB`。
@@ -55,7 +57,7 @@
 - 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
 - 對齊 production-security OpenFHE 參數、ciphertext fields 和 noise range；目前 lowering source 使用實際 OpenFHE TOY key/ciphertext material，仍不是安全參數。
 - 決定真實 ciphertext serialization 格式，讓 `f(x)'` 的 `a` vector 和 `b` body 能被 GC decryption circuit 讀入。
-- 用 Docker `gc_mock` 跑 `./build_mock.sh --v2-openfhe-gc-test`，完成 EMP half-gates backend 驗證；本機目前因沒有 EMP headers/lib，只能跑 minimal backend。
+- 用 Docker `gc_mock` 跑 `./build_mock.sh --v2-openfhe-runtime-demo`，完成 EMP half-gates backend 實跑驗證；目前本機 Docker daemon 無法連線，錯誤是 `Cannot connect to the Docker daemon ...`。
 - 若要更接近 production threat model，需做更嚴格的 artifact/security review；目前 audit 只證明 repo serialization 沒有明文 setup-only fields/key-file references，不等於 reusable GC 的密碼學安全證明。
 - 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。
 - 若要 production security，需要把 `TOY` 參數換成安全參數並重新評估 circuit/gate size。

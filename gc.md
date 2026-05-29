@@ -509,8 +509,9 @@ Encrypted loop iterations executed: 5
 ```
 
 11. 已新增 `audit_openfhe_lwe_int_runtime_boundary`，用 full setup material 作正向對照，檢查 runtime directory 不含 `hsk.s_raw`、`hsk.s_mod_q`、`manual_dec`、clear plaintext field、`hpk/hsk` key file reference，並確認 serialized shape 沒保存 secret values。
-12. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
-13. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
+12. 已新增 `build_mock.sh --v2-openfhe-runtime-demo <material> <runtime-dir>`，讓同一條 v2 runtime demo 可在本機 minimal GC 或 Docker `gc_mock` 的 EMP half-gates backend 下執行。
+13. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
+14. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 
 ## Fixed OpenFHE evaluation key export
 

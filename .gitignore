@@ -4,6 +4,9 @@ build-local/
 demo_mock
 fixed_runtime_demo
 setup_fixed_gc_material
+setup_openfhe_lwe_int_gc_material
+audit_openfhe_lwe_int_runtime_boundary
+openfhe_lwe_int_runtime_demo
 *.o
 *.a
 *.so

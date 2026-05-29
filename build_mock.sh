@@ -109,7 +109,7 @@ build_v2_openfhe_gc_test() {
         exit 1
     fi
 
-    g++ -std=c++17 ${EXTRA_CXXFLAGS} ${EXTRA_DEFS} -I. \
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
         src/gc/boolean_circuit.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
@@ -122,6 +122,56 @@ build_v2_openfhe_gc_test() {
     echo "Build successful! Running v2 OpenFHE decrypt-compare GC test..."
     echo "----------------------------------------"
     ./openfhe_lwe_int_decrypt_compare_gc_test "${material_path}"
+}
+
+build_v2_openfhe_runtime_demo() {
+    local material_path="${2:-demo_keys/openfhe_binfhe_demo_keypair/v2_lwe_integer_material.txt}"
+    local runtime_dir="${3:-${FIXED_GC_ARTIFACT_DIR}/openfhe_lwe_int_runtime}"
+    if [[ ! -f "${material_path}" ]]; then
+        echo "missing v2 OpenFHE material file: ${material_path}" >&2
+        echo "run export_openfhe_lwe_int_material first or pass a material path." >&2
+        exit 1
+    fi
+
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/gc/active_garbled_circuit_io.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_export.cpp \
+        src/gc/boolean_circuit_io.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
+        src/gc/openfhe_lwe_int_material.cpp \
+        ${EXTRA_SRCS} \
+        tools/setup_openfhe_lwe_int_gc_material.cpp \
+        ${EXTRA_LIBS} \
+        -o setup_openfhe_lwe_int_gc_material
+
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/gc/active_garbled_circuit_io.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_io.cpp \
+        src/gc/openfhe_lwe_int_material.cpp \
+        ${EXTRA_SRCS} \
+        tools/audit_openfhe_lwe_int_runtime_boundary.cpp \
+        ${EXTRA_LIBS} \
+        -o audit_openfhe_lwe_int_runtime_boundary
+
+    g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
+        src/gc/active_garbled_circuit_io.cpp \
+        src/gc/boolean_circuit.cpp \
+        src/gc/boolean_circuit_io.cpp \
+        src/gc/minimal_garbled_circuit.cpp \
+        src/gc/openfhe_lwe_int_material.cpp \
+        ${EXTRA_SRCS} \
+        examples/openfhe_lwe_int_runtime_demo.cpp \
+        ${EXTRA_LIBS} \
+        -o openfhe_lwe_int_runtime_demo
+
+    echo "Build successful! Running v2 OpenFHE LWE integer runtime demo..."
+    echo "----------------------------------------"
+    ./setup_openfhe_lwe_int_gc_material "${material_path}" "${runtime_dir}"
+    ./audit_openfhe_lwe_int_runtime_boundary "${material_path}" "${runtime_dir}"
+    ./openfhe_lwe_int_runtime_demo "${runtime_dir}"
 }
 
 case "${MODE}" in
@@ -143,6 +193,9 @@ case "${MODE}" in
         ;;
     --v2-openfhe-gc-test)
         build_v2_openfhe_gc_test "$@"
+        ;;
+    --v2-openfhe-runtime-demo)
+        build_v2_openfhe_runtime_demo "$@"
         ;;
     *)
         echo "unknown build_mock.sh mode: ${MODE}" >&2

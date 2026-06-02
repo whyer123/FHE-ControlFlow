@@ -25,18 +25,41 @@ services:
       bash -lc "set -euo pipefail;
       cmake -S . -B build-emp -DCMAKE_BUILD_TYPE=Release -DUSE_EMP_GC=ON;
       cmake --build build-emp
+      --target active_garbled_circuit_backend_test
+      --target generate_openfhe_keypair
       --target export_openfhe_lwe_int_material
       --target setup_openfhe_lwe_int_gc_material
       --target audit_openfhe_lwe_int_runtime_boundary
       --target openfhe_lwe_int_runtime_demo
       --parallel 2;
+      rm -rf /tmp/openfhe_emp_v2;
       mkdir -p /tmp/openfhe_emp_v2;
+      ./build-emp/active_garbled_circuit_backend_test;
+      ./build-emp/generate_openfhe_keypair
+      /tmp/openfhe_emp_v2/keys;
+      for attempt in 1 2 3 4 5; do
+      rm -rf /tmp/openfhe_emp_v2/runtime;
       ./build-emp/export_openfhe_lwe_int_material
-      demo_keys/openfhe_binfhe_demo_keypair
+      /tmp/openfhe_emp_v2/keys
       /tmp/openfhe_emp_v2/material.txt;
-      ./build-emp/setup_openfhe_lwe_int_gc_material
+      if ./build-emp/setup_openfhe_lwe_int_gc_material
       /tmp/openfhe_emp_v2/material.txt
-      /tmp/openfhe_emp_v2/runtime;
+      /tmp/openfhe_emp_v2/runtime
+      >/tmp/openfhe_emp_v2/setup_output.txt 2>&1; then
+      touch /tmp/openfhe_emp_v2/setup_ok;
+      break;
+      fi;
+      if ! grep -q 'noise-unsafe OpenFHE integer loop material'
+      /tmp/openfhe_emp_v2/setup_output.txt; then
+      cat /tmp/openfhe_emp_v2/setup_output.txt >&2;
+      exit 1;
+      fi;
+      done;
+      if [ ! -f /tmp/openfhe_emp_v2/setup_ok ]; then
+      echo 'EMP runtime did not get noise-safe material after 5 attempts' >&2;
+      cat /tmp/openfhe_emp_v2/setup_output.txt >&2;
+      exit 1;
+      fi;
       ./build-emp/audit_openfhe_lwe_int_runtime_boundary
       /tmp/openfhe_emp_v2/material.txt
       /tmp/openfhe_emp_v2/runtime;

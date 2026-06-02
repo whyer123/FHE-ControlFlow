@@ -14,10 +14,13 @@ RUN apt-get update && apt-get install -y \
     openssl \
     pkg-config \
     python3 \
+    python3-pip \
     sudo \
     wget \
     xxd \
     && update-ca-certificates \
+    && pip3 install --no-cache-dir "cmake>=3.28,<4" \
+    && cmake --version \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -27,8 +30,10 @@ FROM base AS gc-mock
 
 WORKDIR /opt/emp-toolkit
 
-RUN wget https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/scripts/install.py \
-    && python3 install.py --deps --tool \
+RUN git clone --depth 1 https://github.com/emp-toolkit/emp-tool.git \
+    && cmake -S emp-tool -B emp-tool/build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build emp-tool/build --target emp-tool --parallel $(nproc) \
+    && cmake --install emp-tool/build \
     && ldconfig
 
 ENV USE_EMP_GC=1
@@ -48,7 +53,13 @@ WORKDIR /opt
 RUN git clone https://github.com/openfheorg/openfhe-development.git \
     && cd openfhe-development \
     && git checkout v1.1.4 \
-    && cmake -S . -B build -DBUILD_SHARED=ON -DBINARY_ONLY=OFF -DCMAKE_BUILD_TYPE=Release \
+    && cmake -S . -B build \
+        -DBUILD_SHARED=ON \
+        -DBUILD_UNITTESTS=OFF \
+        -DBUILD_EXAMPLES=OFF \
+        -DBUILD_BENCHMARKS=OFF \
+        -DBINARY_ONLY=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --parallel 2 \
     && cmake --install build \
     && ldconfig
@@ -68,8 +79,10 @@ FROM openfhe-runtime AS openfhe-emp-runtime
 
 WORKDIR /opt/emp-toolkit
 
-RUN wget https://raw.githubusercontent.com/emp-toolkit/emp-readme/master/scripts/install.py \
-    && python3 install.py --deps --tool \
+RUN git clone --depth 1 https://github.com/emp-toolkit/emp-tool.git \
+    && cmake -S emp-tool -B emp-tool/build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build emp-tool/build --target emp-tool --parallel $(nproc) \
+    && cmake --install emp-tool/build \
     && ldconfig
 
 ENV USE_EMP_GC=1
@@ -78,10 +91,13 @@ WORKDIR /app
 
 RUN cmake -S . -B build-emp -DCMAKE_BUILD_TYPE=Release -DUSE_EMP_GC=ON \
     && cmake --build build-emp \
+        --target active_garbled_circuit_backend_test \
+        --target generate_openfhe_keypair \
         --target export_openfhe_lwe_int_material \
         --target setup_openfhe_lwe_int_gc_material \
         --target audit_openfhe_lwe_int_runtime_boundary \
         --target openfhe_lwe_int_runtime_demo \
-        --parallel $(nproc)
+        --parallel $(nproc) \
+    && ./build-emp/active_garbled_circuit_backend_test
 
 CMD ["/bin/bash"]

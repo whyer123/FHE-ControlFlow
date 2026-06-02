@@ -81,7 +81,9 @@ LWECiphertext EncryptVerifyAndExport(BinFHEContext& cc,
 
     LWEPlaintext openfhe_dec = 0;
     cc.Decrypt(hsk, ciphertext, &openfhe_dec, plaintext_modulus);
-    Require(openfhe_dec == plaintext,
+    Require(openfhe_dec >= 0,
+            label + " OpenFHE decrypt produced negative plaintext.");
+    Require(static_cast<uint64_t>(openfhe_dec) == plaintext,
             label + " OpenFHE decrypt verification failed.");
 
     const auto manual_dec =

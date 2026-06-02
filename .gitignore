@@ -7,9 +7,21 @@ setup_fixed_gc_material
 setup_openfhe_lwe_int_gc_material
 audit_openfhe_lwe_int_runtime_boundary
 openfhe_lwe_int_runtime_demo
+artifacts/demo_showcase/
+artifacts/std128_showcase/
+artifacts/openfhe_lwe_int_runtime_view/
+demo_keys/openfhe_binfhe_demo_keypair/
 *.o
 *.a
 *.so
+
+# LaTeX build artifacts
+poster/
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.xdv
 
 # IDEs
 .vscode/

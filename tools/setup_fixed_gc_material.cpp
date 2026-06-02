@@ -1,14 +1,10 @@
 #include "src/fhe/fhe_context.h"
 #include "src/gates/fhe_gates.h"
+#include "src/gc/active_garbled_circuit.h"
 #include "src/gc/active_garbled_circuit_io.h"
 #include "src/gc/boolean_circuit_export.h"
 #include "src/gc/boolean_circuit_io.h"
 #include "src/gc/controlled_reveal_circuit.h"
-#ifdef USE_EMP_GC
-#include "src/gc/emp_garbled_circuit.h"
-#else
-#include "src/gc/minimal_garbled_circuit.h"
-#endif
 
 #include <filesystem>
 #include <fstream>
@@ -47,11 +43,7 @@ void WriteManifest(const std::filesystem::path& path) {
         << "- Fixed bound `b = " << kFixedBound << "` is compiled into `GC_f`.\n"
         << "- Runtime public input wires contain only `x_i`.\n"
         << "- `one' = Enc(1)` is represented as mock encrypted integer bits.\n"
-#ifdef USE_EMP_GC
-        << "- GC backend: EMP half-gates.\n";
-#else
-        << "- GC backend: in-repo minimal fallback.\n";
-#endif
+        << "- GC backend: " << ActiveGarbledCircuitBackendName() << ".\n";
 }
 
 } // namespace
@@ -76,12 +68,7 @@ int main(int argc, char** argv) {
                             true /* redact_constant_values */);
     WriteBooleanCircuitShape(circuit, circuit_shape.string());
 
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit garbler;
-#else
-    MinimalGarbledCircuit garbler;
-#endif
-    auto artifact = garbler.Garble(circuit);
+    auto artifact = GarbleActiveCircuit(circuit);
     WriteActiveGarbledCircuitArtifact(artifact, artifact_path.string());
 
     WriteMockEncryptedBits(output_dir / "a_prime_mock_bits.txt",

@@ -44,6 +44,7 @@ add_executable(demo_loop
     src/gc/boolean_circuit.cpp
     src/gc/boolean_circuit_export.cpp
     src/gc/controlled_reveal_circuit.cpp
+    src/gc/active_garbled_circuit.cpp
     src/gc/garbled_predicate_evaluator.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_decryption_circuit.cpp
@@ -81,6 +82,7 @@ add_executable(setup_fixed_gc_material
     src/gc/boolean_circuit_export.cpp
     src/gc/boolean_circuit_io.cpp
     src/gc/controlled_reveal_circuit.cpp
+    src/gc/active_garbled_circuit.cpp
     src/gc/garbled_predicate_evaluator.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_decryption_circuit.cpp
@@ -105,6 +107,7 @@ add_executable(setup_openfhe_lwe_int_gc_material
     src/gc/boolean_circuit.cpp
     src/gc/boolean_circuit_export.cpp
     src/gc/boolean_circuit_io.cpp
+    src/gc/active_garbled_circuit.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp
     src/gc/openfhe_lwe_int_material.cpp
@@ -116,6 +119,7 @@ add_executable(openfhe_lwe_int_runtime_demo
     src/gc/active_garbled_circuit_io.cpp
     src/gc/boolean_circuit.cpp
     src/gc/boolean_circuit_io.cpp
+    src/gc/active_garbled_circuit.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_int_material.cpp
     ${GC_BACKEND_SOURCES}
@@ -161,9 +165,18 @@ add_executable(openfhe_lwe_int_decrypt_compare_circuit_test
 add_executable(openfhe_lwe_int_decrypt_compare_gc_test
     tests/openfhe_lwe_int_decrypt_compare_gc_test.cpp
     src/gc/boolean_circuit.cpp
+    src/gc/active_garbled_circuit.cpp
     src/gc/minimal_garbled_circuit.cpp
     src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp
     src/gc/openfhe_lwe_int_material.cpp
+    ${GC_BACKEND_SOURCES}
+)
+
+add_executable(active_garbled_circuit_backend_test
+    tests/active_garbled_circuit_backend_test.cpp
+    src/gc/boolean_circuit.cpp
+    src/gc/active_garbled_circuit.cpp
+    src/gc/minimal_garbled_circuit.cpp
     ${GC_BACKEND_SOURCES}
 )
 
@@ -180,7 +193,7 @@ target_link_libraries(dump_openfhe_eval_bin_gate_circuit
 )
 
 if(USE_EMP_GC)
-    foreach(GC_TARGET demo_loop setup_fixed_gc_material setup_openfhe_lwe_int_gc_material openfhe_lwe_int_runtime_demo audit_openfhe_lwe_int_runtime_boundary openfhe_lwe_int_decrypt_compare_gc_test)
+    foreach(GC_TARGET demo_loop setup_fixed_gc_material setup_openfhe_lwe_int_gc_material openfhe_lwe_int_runtime_demo audit_openfhe_lwe_int_runtime_boundary openfhe_lwe_int_decrypt_compare_gc_test active_garbled_circuit_backend_test)
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
             target_compile_options(${GC_TARGET} PRIVATE -march=armv8-a+simd+crypto+crc)
         elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64)$")

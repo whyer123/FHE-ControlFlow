@@ -1,11 +1,7 @@
 #include "src/gc/active_garbled_circuit_io.h"
+#include "src/gc/active_garbled_circuit.h"
 #include "src/gc/boolean_circuit_io.h"
 #include "src/gc/openfhe_lwe_int_material.h"
-#ifdef USE_EMP_GC
-#include "src/gc/emp_garbled_circuit.h"
-#else
-#include "src/gc/minimal_garbled_circuit.h"
-#endif
 
 #include <cstdlib>
 #include <filesystem>
@@ -80,15 +76,7 @@ bool EvaluatePredicate(
     const auto input_bits =
         BuildPredicateInputs(circuit, lhs, rhs, modulus_bits);
 
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit gc;
-    const auto outputs = gc.Evaluate(artifact, circuit, input_bits);
-#else
-    MinimalGarbledCircuit gc;
-    const auto input_labels = gc.EncodeInputs(artifact, input_bits);
-    const auto output_labels = gc.EvaluateLabels(artifact, input_labels);
-    const auto outputs = gc.DecodeOutputs(artifact, output_labels);
-#endif
+    const auto outputs = EvaluateActiveCircuit(artifact, circuit, input_bits);
 
     Require(outputs.size() == 1, "OpenFHE LWE integer GC must output one bit.");
     return outputs.front();

@@ -1,6 +1,7 @@
 # Build artifacts
 build/
 build-local/
+build-emp/
 demo_mock
 fixed_runtime_demo
 setup_fixed_gc_material

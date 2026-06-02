@@ -5,12 +5,18 @@ cd "$(dirname "$0")/.."
 
 out_dir="$(mktemp -d)"
 trap 'rm -rf "$out_dir"' EXIT
+key_dir="$out_dir/openfhe_keypair"
 
 cmake -S . -B build-local -DCMAKE_BUILD_TYPE=Release >/dev/null
-cmake --build build-local --target export_openfhe_lwe_int_material --parallel 2 >/dev/null
+cmake --build build-local \
+    --target generate_openfhe_keypair \
+    --target export_openfhe_lwe_int_material \
+    --parallel 2 >/dev/null
+
+./build-local/generate_openfhe_keypair "$key_dir" >/dev/null
 
 ./build-local/export_openfhe_lwe_int_material \
-    demo_keys/openfhe_binfhe_demo_keypair \
+    "$key_dir" \
     "$out_dir/v2_lwe_integer_material.txt" >/dev/null
 
 material="$out_dir/v2_lwe_integer_material.txt"

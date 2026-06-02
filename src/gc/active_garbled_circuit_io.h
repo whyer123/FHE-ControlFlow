@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/gc/garbled_predicate_evaluator.h"
+#include "src/gc/active_garbled_circuit.h"
 #include <string>
 
 void WriteActiveGarbledCircuitArtifact(

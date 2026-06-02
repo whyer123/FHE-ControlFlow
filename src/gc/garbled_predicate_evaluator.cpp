@@ -26,15 +26,7 @@ bool GarbledPredicateEvaluator::Evaluate(
         input_bits[circuit_.input_wires[2 * i + 1]] = bound[i].bit;
     }
 
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit gc;
-    auto decoded_outputs = gc.Evaluate(artifact_, circuit_, input_bits);
-#else
-    MinimalGarbledCircuit gc;
-    auto input_labels = gc.EncodeInputs(artifact_, input_bits);
-    auto output_labels = gc.EvaluateLabels(artifact_, input_labels);
-    auto decoded_outputs = gc.DecodeOutputs(artifact_, output_labels);
-#endif
+    auto decoded_outputs = EvaluateActiveCircuit(artifact_, circuit_, input_bits);
 
     if (decoded_outputs.size() != 1) {
         throw std::invalid_argument("Predicate GC must produce exactly one output bit.");
@@ -65,15 +57,7 @@ bool GarbledPredicateEvaluator::EvaluateFixedBound(
         input_bits[circuit_.input_wires[i]] = x[i].bit;
     }
 
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit gc;
-    auto decoded_outputs = gc.Evaluate(artifact_, circuit_, input_bits);
-#else
-    MinimalGarbledCircuit gc;
-    auto input_labels = gc.EncodeInputs(artifact_, input_bits);
-    auto output_labels = gc.EvaluateLabels(artifact_, input_labels);
-    auto decoded_outputs = gc.DecodeOutputs(artifact_, output_labels);
-#endif
+    auto decoded_outputs = EvaluateActiveCircuit(artifact_, circuit_, input_bits);
 
     if (decoded_outputs.size() != 1) {
         throw std::invalid_argument("Predicate GC must produce exactly one output bit.");

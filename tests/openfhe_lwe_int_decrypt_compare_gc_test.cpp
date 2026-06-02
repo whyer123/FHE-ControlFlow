@@ -1,11 +1,6 @@
+#include "src/gc/active_garbled_circuit.h"
 #include "src/gc/openfhe_lwe_int_decrypt_compare_circuit.h"
 #include "src/gc/openfhe_lwe_int_material.h"
-
-#ifdef USE_EMP_GC
-#include "src/gc/emp_garbled_circuit.h"
-#else
-#include "src/gc/minimal_garbled_circuit.h"
-#endif
 
 #include <cstdlib>
 #include <iostream>
@@ -70,23 +65,12 @@ BitMap BuildInputBits(const BooleanCircuit& circuit,
 
 std::vector<bool> GarbleAndEvaluate(const BooleanCircuit& circuit,
                                     const BitMap& input_bits) {
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit gc;
-    auto artifact = gc.Garble(circuit);
+    auto artifact = GarbleActiveCircuit(circuit);
     Require(artifact.constant_labels.size() ==
                 circuit.constant_wires.size() +
                     circuit.secret_constant_wires.size(),
-            "EMP artifact must include selected labels for public and secret constants.");
-    return gc.Evaluate(artifact, circuit, input_bits);
-#else
-    MinimalGarbledCircuit gc;
-    auto artifact = gc.Garble(circuit);
-    Require(artifact.constant_labels.size() ==
-                circuit.constant_wires.size() +
-                    circuit.secret_constant_wires.size(),
-            "minimal artifact must include selected labels for public and secret constants.");
-    return gc.Evaluate(artifact, input_bits);
-#endif
+            "active artifact must include selected labels for public and secret constants.");
+    return EvaluateActiveCircuit(artifact, circuit, input_bits);
 }
 
 bool EvaluatePredicate(const BooleanCircuit& circuit,
@@ -123,10 +107,7 @@ int main(int argc, char** argv) {
                               params.modulus_bits),
             "GC expected Dec(b') <= Dec(b') for equal ciphertext inputs");
 
-#ifdef USE_EMP_GC
-    std::cout << "OpenFHE LWE integer decrypt-compare EMP GC test passed.\n";
-#else
-    std::cout << "OpenFHE LWE integer decrypt-compare minimal GC test passed.\n";
-#endif
+    std::cout << "OpenFHE LWE integer decrypt-compare "
+              << ActiveGarbledCircuitBackendName() << " GC test passed.\n";
     return EXIT_SUCCESS;
 }

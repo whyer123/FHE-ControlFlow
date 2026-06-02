@@ -4,11 +4,7 @@
 #include "src/gates/fhe_gates.h"
 #include "src/gc/controlled_reveal_circuit.h"
 #include "src/gc/boolean_circuit_export.h"
-#ifdef USE_EMP_GC
-#include "src/gc/emp_garbled_circuit.h"
-#else
-#include "src/gc/minimal_garbled_circuit.h"
-#endif
+#include "src/gc/active_garbled_circuit.h"
 #include "src/gc/garbled_predicate_evaluator.h"
 #include "src/gc/predicate_gc.h"
 #include <filesystem>
@@ -43,21 +39,12 @@ int main() {
     const std::string circuit_dump_path = "artifacts/circuit_g_demo.txt";
     WriteBooleanCircuitText(circuit, circuit_dump_path);
     std::cout << "Circuit_g dump path: " << circuit_dump_path << std::endl;
-#ifdef USE_EMP_GC
-    EmpGarbledCircuit garbler;
-    auto garbled_artifact = garbler.Garble(circuit);
-#else
-    MinimalGarbledCircuit garbler;
-    auto garbled_artifact = garbler.Garble(circuit);
-#endif
+    auto garbled_artifact = GarbleActiveCircuit(circuit);
     GarbledPredicateEvaluator garbled_predicate(circuit, garbled_artifact);
 #ifdef MOCK_OPENFHE
     EncryptedPredicateEvaluator& predicate_gc = garbled_predicate;
-#ifdef USE_EMP_GC
-    std::cout << "Evaluator predicate path: EMP half-gates GC artifact" << std::endl;
-#else
-    std::cout << "Evaluator predicate path: Minimal GC artifact" << std::endl;
-#endif
+    std::cout << "Evaluator predicate path: "
+              << ActiveGarbledCircuitBackendName() << " GC artifact" << std::endl;
 #else
     EncryptedPredicateEvaluator& predicate_gc = circuit_builder;
     std::cout << "Evaluator predicate path: direct OpenFHE controlled reveal fallback" << std::endl;
@@ -93,13 +80,9 @@ int main() {
     }
 
 #ifdef MOCK_OPENFHE
-#ifdef USE_EMP_GC
-    std::cout << "EMP GC evaluated [a <= b] = "
+    std::cout << ActiveGarbledCircuitBackendName()
+              << " GC evaluated [a <= b] = "
               << (predicate_gc.Evaluate(enc_a, enc_b) ? 1 : 0) << std::endl;
-#else
-    std::cout << "Minimal GC evaluated [a <= b] = "
-              << (predicate_gc.Evaluate(enc_a, enc_b) ? 1 : 0) << std::endl;
-#endif
 #else
     std::cout << "GC direct evaluation is shown only in MOCK_OPENFHE mode."
               << std::endl;

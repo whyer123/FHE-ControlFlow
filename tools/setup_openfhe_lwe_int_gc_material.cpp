@@ -1,13 +1,9 @@
 #include "src/gc/active_garbled_circuit_io.h"
+#include "src/gc/active_garbled_circuit.h"
 #include "src/gc/boolean_circuit_export.h"
 #include "src/gc/boolean_circuit_io.h"
 #include "src/gc/openfhe_lwe_int_decrypt_compare_circuit.h"
 #include "src/gc/openfhe_lwe_int_material.h"
-#ifdef USE_EMP_GC
-#include "src/gc/emp_garbled_circuit.h"
-#else
-#include "src/gc/minimal_garbled_circuit.h"
-#endif
 
 #include <cstdlib>
 #include <filesystem>
@@ -132,11 +128,7 @@ void WriteManifest(const std::filesystem::path& path,
         << "- LWE dimension: `" << material.hsk_dimension << "`.\n"
         << "- Circuit input wires: `" << circuit.input_wires.size() << "`.\n"
         << "- Circuit gates: `" << circuit.gates.size() << "`.\n"
-#ifdef USE_EMP_GC
-        << "- GC backend: EMP half-gates.\n";
-#else
-        << "- GC backend: in-repo minimal fallback.\n";
-#endif
+        << "- GC backend: " << ActiveGarbledCircuitBackendName() << ".\n";
 }
 
 } // namespace
@@ -168,12 +160,7 @@ int main(int argc, char** argv) {
                                 true /* redact_constant_values */);
         WriteBooleanCircuitShape(circuit, circuit_shape.string());
 
-#ifdef USE_EMP_GC
-        EmpGarbledCircuit garbler;
-#else
-        MinimalGarbledCircuit garbler;
-#endif
-        const auto artifact = garbler.Garble(circuit);
+        const auto artifact = GarbleActiveCircuit(circuit);
         WriteActiveGarbledCircuitArtifact(artifact, artifact_path.string());
         WriteOpenFHELWEIntRuntimeMaterial(ToRuntimeMaterial(material),
                                           runtime_material_path.string());

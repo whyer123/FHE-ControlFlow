@@ -33,6 +33,7 @@ build_legacy_demo() {
         src/gc/boolean_circuit.cpp \
         src/gc/boolean_circuit_export.cpp \
         src/gc/controlled_reveal_circuit.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/garbled_predicate_evaluator.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_decryption_circuit.cpp \
@@ -57,6 +58,7 @@ build_fixed_setup() {
         src/gc/boolean_circuit_export.cpp \
         src/gc/boolean_circuit_io.cpp \
         src/gc/controlled_reveal_circuit.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/garbled_predicate_evaluator.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_decryption_circuit.cpp \
@@ -75,6 +77,7 @@ build_fixed_runtime() {
         src/gc/active_garbled_circuit_io.cpp \
         src/gc/boolean_circuit.cpp \
         src/gc/boolean_circuit_io.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/garbled_predicate_evaluator.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         ${EXTRA_SRCS} \
@@ -111,6 +114,7 @@ build_v2_openfhe_gc_test() {
 
     g++ -std=c++17 ${EXTRA_CXXFLAGS} -DMOCK_OPENFHE ${EXTRA_DEFS} -I. \
         src/gc/boolean_circuit.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
         src/gc/openfhe_lwe_int_material.cpp \
@@ -138,6 +142,7 @@ build_v2_openfhe_runtime_demo() {
         src/gc/boolean_circuit.cpp \
         src/gc/boolean_circuit_export.cpp \
         src/gc/boolean_circuit_io.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_int_decrypt_compare_circuit.cpp \
         src/gc/openfhe_lwe_int_material.cpp \
@@ -160,6 +165,7 @@ build_v2_openfhe_runtime_demo() {
         src/gc/active_garbled_circuit_io.cpp \
         src/gc/boolean_circuit.cpp \
         src/gc/boolean_circuit_io.cpp \
+        src/gc/active_garbled_circuit.cpp \
         src/gc/minimal_garbled_circuit.cpp \
         src/gc/openfhe_lwe_int_material.cpp \
         ${EXTRA_SRCS} \

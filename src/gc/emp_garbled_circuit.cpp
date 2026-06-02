@@ -2,14 +2,14 @@
 
 #ifdef USE_EMP_GC
 
+#include <cstdint>
 #include <cstring>
-#include <emp-tool/gc/halfgate_eva.h>
-#include <emp-tool/gc/halfgate_gen.h>
+#include <emp-tool/execution/half_gate.h>
 #include <stdexcept>
 
 namespace {
 
-class EmpTranscriptIO {
+class EmpTranscriptIO : public emp::IOChannel {
 public:
     explicit EmpTranscriptIO(std::vector<emp::block>* output)
         : output_(output), input_(nullptr) {}
@@ -17,21 +17,31 @@ public:
     explicit EmpTranscriptIO(const std::vector<emp::block>* input)
         : output_(nullptr), input_(input) {}
 
-    void send_block(const emp::block* data, int count) {
-        if (output_ == nullptr || count < 0) {
+    void send_data_internal(const void* data, int64_t nbyte) override {
+        if (output_ == nullptr || nbyte < 0 ||
+            nbyte % static_cast<int64_t>(sizeof(emp::block)) != 0) {
             throw std::runtime_error("EMP transcript is not writable.");
         }
-        output_->insert(output_->end(), data, data + count);
+        const auto count =
+            static_cast<size_t>(nbyte) / sizeof(emp::block);
+        const auto* blocks = static_cast<const emp::block*>(data);
+        output_->insert(output_->end(), blocks, blocks + count);
     }
 
-    void recv_block(emp::block* data, int count) {
-        if (input_ == nullptr || count < 0 ||
-            read_cursor_ + static_cast<size_t>(count) > input_->size()) {
+    void recv_data_internal(void* data, int64_t nbyte) override {
+        if (input_ == nullptr || nbyte < 0 ||
+            nbyte % static_cast<int64_t>(sizeof(emp::block)) != 0) {
+            throw std::runtime_error("EMP transcript is not readable.");
+        }
+        const auto count =
+            static_cast<size_t>(nbyte) / sizeof(emp::block);
+        auto* blocks = static_cast<emp::block*>(data);
+        if (read_cursor_ + count > input_->size()) {
             throw std::runtime_error("EMP transcript underflow.");
         }
-        std::memcpy(data, input_->data() + read_cursor_,
-                    sizeof(emp::block) * static_cast<size_t>(count));
-        read_cursor_ += static_cast<size_t>(count);
+        std::memcpy(blocks, input_->data() + read_cursor_,
+                    sizeof(emp::block) * count);
+        read_cursor_ += count;
     }
 
 private:
@@ -76,7 +86,7 @@ EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
     artifact.gate_count = circuit.gates.size();
 
     EmpTranscriptIO gen_io(&artifact.transcript);
-    emp::HalfGateGen<EmpTranscriptIO> gen(&gen_io);
+    emp::HalfGateGen gen(&gen_io);
     artifact.delta = gen.delta;
 
     std::unordered_map<WireId, emp::block> zero_labels;
@@ -104,7 +114,7 @@ EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
     }
 
     for (const auto& gate : circuit.gates) {
-        emp::block output_zero;
+        emp::block output_zero = emp::makeBlock(0, 0);
         switch (gate.kind) {
         case BitGateKind::And: {
             if (gate.inputs.size() != 2) {
@@ -112,7 +122,7 @@ EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
             }
             auto lhs_zero = RequireWireLabel(zero_labels, gate.inputs[0]);
             auto rhs_zero = RequireWireLabel(zero_labels, gate.inputs[1]);
-            output_zero = gen.and_gate(lhs_zero, rhs_zero);
+            gen.and_gate(&output_zero, &lhs_zero, &rhs_zero);
             ++artifact.and_gate_count;
             break;
         }
@@ -122,7 +132,7 @@ EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
             }
             auto lhs_zero = RequireWireLabel(zero_labels, gate.inputs[0]);
             auto rhs_zero = RequireWireLabel(zero_labels, gate.inputs[1]);
-            output_zero = gen.xor_gate(lhs_zero, rhs_zero);
+            gen.xor_gate(&output_zero, &lhs_zero, &rhs_zero);
             break;
         }
         case BitGateKind::Not: {
@@ -166,7 +176,7 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
     }
 
     EmpTranscriptIO eva_io(&artifact.transcript);
-    emp::HalfGateEva<EmpTranscriptIO> eva(&eva_io);
+    emp::HalfGateEva eva(&eva_io);
 
     std::unordered_map<WireId, emp::block> active_labels;
     for (const auto wire : artifact.input_wires) {
@@ -187,7 +197,7 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
     }
 
     for (const auto& gate : circuit.gates) {
-        emp::block output_label;
+        emp::block output_label = emp::makeBlock(0, 0);
         switch (gate.kind) {
         case BitGateKind::And: {
             if (gate.inputs.size() != 2) {
@@ -195,7 +205,7 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
             }
             auto lhs = RequireWireLabel(active_labels, gate.inputs[0]);
             auto rhs = RequireWireLabel(active_labels, gate.inputs[1]);
-            output_label = eva.and_gate(lhs, rhs);
+            eva.and_gate(&output_label, &lhs, &rhs);
             break;
         }
         case BitGateKind::Xor: {
@@ -204,7 +214,7 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
             }
             auto lhs = RequireWireLabel(active_labels, gate.inputs[0]);
             auto rhs = RequireWireLabel(active_labels, gate.inputs[1]);
-            output_label = eva.xor_gate(lhs, rhs);
+            eva.xor_gate(&output_label, &lhs, &rhs);
             break;
         }
         case BitGateKind::Not: {

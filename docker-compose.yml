@@ -23,8 +23,8 @@ services:
       - .:/app
     command: >
       bash -lc "set -euo pipefail;
-      cmake -S . -B build-emp -DCMAKE_BUILD_TYPE=Release -DUSE_EMP_GC=ON;
-      cmake --build build-emp
+      cmake -S . -B /tmp/build-emp -DCMAKE_BUILD_TYPE=Release -DUSE_EMP_GC=ON;
+      cmake --build /tmp/build-emp
       --target active_garbled_circuit_backend_test
       --target generate_openfhe_keypair
       --target export_openfhe_lwe_int_material
@@ -34,15 +34,16 @@ services:
       --parallel 2;
       rm -rf /tmp/openfhe_emp_v2;
       mkdir -p /tmp/openfhe_emp_v2;
-      ./build-emp/active_garbled_circuit_backend_test;
-      ./build-emp/generate_openfhe_keypair
-      /tmp/openfhe_emp_v2/keys;
+      /tmp/build-emp/active_garbled_circuit_backend_test;
+      /tmp/build-emp/generate_openfhe_keypair
+      /tmp/openfhe_emp_v2/keys
+      STD128;
       for attempt in 1 2 3 4 5; do
       rm -rf /tmp/openfhe_emp_v2/runtime;
-      ./build-emp/export_openfhe_lwe_int_material
+      /tmp/build-emp/export_openfhe_lwe_int_material
       /tmp/openfhe_emp_v2/keys
       /tmp/openfhe_emp_v2/material.txt;
-      if ./build-emp/setup_openfhe_lwe_int_gc_material
+      if /tmp/build-emp/setup_openfhe_lwe_int_gc_material
       /tmp/openfhe_emp_v2/material.txt
       /tmp/openfhe_emp_v2/runtime
       >/tmp/openfhe_emp_v2/setup_output.txt 2>&1; then
@@ -60,10 +61,10 @@ services:
       cat /tmp/openfhe_emp_v2/setup_output.txt >&2;
       exit 1;
       fi;
-      ./build-emp/audit_openfhe_lwe_int_runtime_boundary
+      /tmp/build-emp/audit_openfhe_lwe_int_runtime_boundary
       /tmp/openfhe_emp_v2/material.txt
       /tmp/openfhe_emp_v2/runtime;
-      ./build-emp/openfhe_lwe_int_runtime_demo
+      /tmp/build-emp/openfhe_lwe_int_runtime_demo
       /tmp/openfhe_emp_v2/runtime
       | tee /tmp/openfhe_emp_v2/runtime_output.txt;
       grep -q 'GC backend: EMP half-gates'

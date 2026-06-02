@@ -76,6 +76,9 @@ LWECiphertext EncryptVerifyAndExport(BinFHEContext& cc,
     auto ciphertext = cc.Encrypt(hpk, plaintext, SMALL_DIM,
                                  plaintext_modulus);
     Require(ciphertext != nullptr, label + " encryption failed.");
+    // OpenFHE v1.1.4 key switching rebuilds the LWE ciphertext and does not
+    // preserve this metadata; the arithmetic fields still decrypt with p.
+    ciphertext->SetptModulus(plaintext_modulus);
     Require(ToU64(ciphertext->GetptModulus()) == plaintext_modulus,
             label + " ciphertext plaintext modulus mismatch.");
 

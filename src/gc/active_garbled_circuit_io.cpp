@@ -31,6 +31,7 @@ uint64_t ReadU64(std::istream& in) {
     return value;
 }
 
+#ifndef USE_EMP_GC
 void WriteBool(std::ostream& out, bool value) {
     const uint8_t byte = value ? 1 : 0;
     out.write(reinterpret_cast<const char*>(&byte), sizeof(byte));
@@ -42,6 +43,7 @@ bool ReadBool(std::istream& in) {
     Require(static_cast<bool>(in), "failed to read bool from GC artifact.");
     return byte != 0;
 }
+#endif
 
 void WriteString(std::ostream& out, const std::string& value) {
     WriteU64(out, value.size());

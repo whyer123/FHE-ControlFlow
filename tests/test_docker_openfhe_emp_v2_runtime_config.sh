@@ -18,7 +18,9 @@ grep -q "generate_openfhe_keypair" Dockerfile
 grep -q "active_garbled_circuit_backend_test" Dockerfile
 grep -q "openfhe_emp_v2_runtime:" docker-compose.yml
 grep -q "target: openfhe-emp-runtime" docker-compose.yml
+grep -q "cmake -S . -B /tmp/build-emp" docker-compose.yml
 grep -q "generate_openfhe_keypair" docker-compose.yml
+grep -q "STD128" docker-compose.yml
 grep -q "export_openfhe_lwe_int_material" docker-compose.yml
 grep -q "setup_openfhe_lwe_int_gc_material" docker-compose.yml
 grep -q "audit_openfhe_lwe_int_runtime_boundary" docker-compose.yml

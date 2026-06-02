@@ -165,6 +165,7 @@ int main(int argc, char** argv) {
 
     std::cout << "--- OpenFHE LWE Integer GC Evaluator Runtime Demo ---\n";
     std::cout << "GC_f(x', b') = GC{ [Dec_hsk(x') <= Dec_hsk(b')] }\n";
+    std::cout << "GC backend: " << ActiveGarbledCircuitBackendName() << "\n";
     std::cout << "Evaluator runtime loaded only a', b', one', circuit shape, and GC artifact\n";
     std::cout << "Evaluator runtime did not load hpk or hsk\n";
     std::cout << "Runtime public input wires: "

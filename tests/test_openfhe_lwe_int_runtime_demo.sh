@@ -68,6 +68,7 @@ fi
 ./build-local/openfhe_lwe_int_runtime_demo "$runtime_dir" >"$runtime_output"
 
 grep -q "Evaluator runtime did not load hpk or hsk" "$runtime_output"
+grep -q "GC backend: in-repo minimal fallback" "$runtime_output"
 grep -q "GC_f(x', b') = GC{ \\[Dec_hsk(x') <= Dec_hsk(b')\\] }" "$runtime_output"
 grep -q "Predicate sequence: 1,1,1,1,1,0" "$runtime_output"
 grep -q "Encrypted loop iterations executed: 5" "$runtime_output"

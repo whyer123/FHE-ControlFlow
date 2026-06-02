@@ -25,6 +25,7 @@ grep -q "audit_openfhe_lwe_int_runtime_boundary" docker-compose.yml
 grep -q "openfhe_lwe_int_runtime_demo" docker-compose.yml
 grep -q "for attempt in 1 2 3 4 5" docker-compose.yml
 grep -q "noise-unsafe OpenFHE integer loop material" docker-compose.yml
+grep -q "GC backend: EMP half-gates" docker-compose.yml
 grep -q "Predicate sequence: 1,1,1,1,1,0" docker-compose.yml
 grep -Eq "^build-local/?$" .dockerignore
 grep -Eq "^build-emp/?$" .dockerignore

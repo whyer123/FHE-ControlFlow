@@ -65,6 +65,7 @@ run_case() {
     grep -q "Predicate sequence: $expected_sequence" "$output"
     grep -q "Encrypted loop iterations executed: $expected_iterations" "$output"
     grep -q "Evaluator runtime did not load hpk or hsk" "$output"
+    grep -q "GC backend: in-repo minimal fallback" "$output"
 }
 
 run_case 0 0 "1,0" 1

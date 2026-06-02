@@ -56,6 +56,8 @@
 - 實測 `STD128` v2 integer LWE runtime：`n=556`、`q=2048`、runtime public input wires `12254`，可跑出 `1,1,1,1,1,0`；臨時 key material 約 `571MB`，runtime artifact directory 約 `174MB`。
 - 新增 setup 端 noise-safe increment 檢查：若 `one'` 單獨解密為 1，但反覆加到 `a'` 後沒有正確解成 `a,a+1,...,b,b+1`，setup 會拒絕 material，避免 runtime loop 少跑或提早停。
 - 新增 opt-in 重型測試 `RUN_STD128_OPENFHE_TEST=1 bash tests/test_openfhe_lwe_int_std128_runtime_demo.sh`；預設測試只 skip，避免每次產生大型 `STD128` key/eval material。
+- 新增 `run_emp_showcase.sh`，以 Docker `openfhe_emp_v2_runtime` 跑完整 EMP-backed STD128 展示。
+- 已實測 `docker compose run --rm openfhe_emp_v2_runtime`：容器內產生 OpenFHE material、建立 EMP half-gates GC artifact、通過 runtime boundary audit，並輸出 `GC backend: EMP half-gates`、predicate sequence `1,1,1,1,1,0`。
 
 ## 還差什麼
 
@@ -67,7 +69,6 @@
 - 補 OpenFHE NTT/evaluation-domain 對齊，或把 exporter 改成輸出 coefficient-domain eval keys 並讓 source 全程使用 coefficient-domain convolution。
 - checked-in material 仍是 TOY；若要把固定展示改成 `STD128`，需要決定大型 key/runtime artifact 是否外部保存，不能直接把數百 MB material 放進 repo。
 - 若要 production packaging，將目前 repo-local text material format 換成穩定 binary/JSON schema，並加版本遷移策略。
-- 實際執行 `docker-compose run --rm openfhe_emp_v2_runtime`，完成 OpenFHE material generation + EMP half-gates v2 runtime 的容器內端到端驗證；目前本機 Docker daemon 無法連線，錯誤是 `Cannot connect to the Docker daemon ...`。
 - 若要更接近 production threat model，需做更嚴格的 artifact/security review；目前 audit 只證明 repo serialization 沒有明文 setup-only fields/key-file references，不等於 reusable GC 的密碼學安全證明。
 - 若要接回 bit-level OpenFHE `EvalBinGate` loop update，仍需處理 evaluation keys / bootstrapping；目前 v2 integer LWE demo 的 `x' <- x' + one'` 是 component-wise LWE addition。
 - 若要 production security，需要用安全參數重生正式 material，並做更完整的 circuit/gate size、runtime、noise range 報告。

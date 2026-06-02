@@ -506,7 +506,7 @@ Dec(b') <= Dec(a') -> 0
 Dec(b') <= Dec(b') -> 1
 ```
 
-Docker `gc_mock` 可用 `./build_mock.sh --v2-openfhe-gc-test <material>` 跑同一測試的 EMP half-gates backend；本機目前沒有 EMP headers/lib，且 Docker daemon 未啟動，因此 EMP 驗證尚未完成。
+Docker `gc_mock` 可用 `./build_mock.sh --v2-openfhe-gc-test <material>` 跑同一測試的 EMP half-gates backend；完整展示則使用 `./run_emp_showcase.sh` 或 `docker compose run --rm openfhe_emp_v2_runtime`。
 10. 已新增 `setup_openfhe_lwe_int_gc_material` 和 `openfhe_lwe_int_runtime_demo`，runtime 只載入 sanitized material、circuit shape、GC artifact，不載入 `hpk/hsk`，並輸出：
 
 ```text
@@ -516,7 +516,7 @@ Encrypted loop iterations executed: 5
 
 11. 已新增 `audit_openfhe_lwe_int_runtime_boundary`，用 full setup material 作正向對照，檢查 runtime directory 不含 `hsk.s_raw`、`hsk.s_mod_q`、`manual_dec`、clear plaintext field、`hpk/hsk` key file reference，並確認 serialized shape 沒保存 secret values。
 12. 已新增 `build_mock.sh --v2-openfhe-runtime-demo <material> <runtime-dir>`，讓同一條 v2 runtime demo 可在本機 minimal GC 或 Docker `gc_mock` 的 EMP half-gates backend 下執行。
-13. 已新增 Docker `openfhe-emp-runtime` target 和 `openfhe_emp_v2_runtime` service，目標是在同一容器內產生 OpenFHE material 並用 EMP half-gates 跑 v2 runtime。
+13. 已新增 Docker `openfhe-emp-runtime` target 和 `openfhe_emp_v2_runtime` service，並已完成端到端實測：容器內產生 OpenFHE `STD128` material、用 EMP half-gates 產生/執行 GC artifact，runtime 輸出 `GC backend: EMP half-gates` 和 predicate sequence `1,1,1,1,1,0`。
 14. in-repo minimal GC 仍保留為無 EMP 環境的 fallback，不是主要 demo path。
 15. `openfhe_controlled_reveal_reference.cpp` 已移除 semantic gate decode / fake re-encrypt，改成 `BootstrapGateCoreOpenFHE -> EvalAccCGGI -> SwitchCTtoqn` 的資料流；但 `ExternalProductCGGI`、blind rotation key material、key switching key material 還不是 OpenFHE 1.5.0 bit-accurate 展開。
 

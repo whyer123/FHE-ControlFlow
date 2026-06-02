@@ -620,7 +620,7 @@ bash tests/test_openfhe_lwe_int_decrypt_compare_gc.sh
 ./build_mock.sh --v2-openfhe-gc-test <material>
 ```
 
-且 `USE_EMP_GC=1`，則會使用 EMP half-gates backend。這代表 v2 circuit 已接到 GC artifact/evaluation API；但本機尚未驗證 EMP，因為 host 沒有 EMP toolkit，且目前 Docker daemon 未啟動。
+且 `USE_EMP_GC=1`，則會使用 EMP half-gates backend。這代表 v2 circuit 已接到 GC artifact/evaluation API；目前完整 EMP 實跑則由 `openfhe_emp_v2_runtime` service 負責。
 
 目前也新增 v2 runtime demo：
 
@@ -670,7 +670,7 @@ audit_openfhe_lwe_int_runtime_boundary
 openfhe_lwe_int_runtime_demo
 ```
 
-因此在本機沒設 `USE_EMP_GC` 時會走 minimal GC fallback；在 Docker `gc_mock` 裡因 `USE_EMP_GC=1` 會走 EMP half-gates backend。這是目前要驗證 EMP v2 runtime 的主要入口。
+因此在本機沒設 `USE_EMP_GC` 時會走 minimal GC fallback；正式 EMP 展示建議使用下面的完整容器服務，而不是本機 fallback。
 
 另外也新增一個完整容器服務：
 
@@ -681,11 +681,27 @@ docker-compose run --rm openfhe_emp_v2_runtime
 這個 service 使用 `openfhe-emp-runtime` Docker target。容器內同時有 OpenFHE 與 EMP，所以它會在同一個環境中：
 
 ```text
-1. 產生 OpenFHE LWE integer material。
+1. 產生 OpenFHE `STD128` LWE integer material。
 2. 用 `hsk.s_mod_q` 建 v2 GC artifact。
 3. 執行 runtime boundary audit。
 4. 用 EMP half-gates backend 跑 `openfhe_lwe_int_runtime_demo`。
-5. 檢查 `Predicate sequence: 1,1,1,1,1,0`。
+5. 檢查 `GC backend: EMP half-gates` 與 `Predicate sequence: 1,1,1,1,1,0`。
+
+也可以直接執行：
+
+```text
+./run_emp_showcase.sh
+```
+
+目前已完成 Docker 端到端實測，輸出包含：
+
+```text
+OpenFHE LWE integer runtime boundary audit passed.
+GC backend: EMP half-gates
+Evaluator runtime did not load hpk or hsk
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
 ```
 
 ## 目前仍是 mock 的部分
@@ -693,10 +709,9 @@ docker-compose run --rm openfhe_emp_v2_runtime
 目前仍是 mock 或 demo 化的部分：
 
 - 舊的 `MOCK_OPENFHE` / fixed-bound runtime path 仍存在，主要作為早期比較用；v2 OpenFHE integer LWE runtime 已改用真實 OpenFHE 匯出的 ciphertext fields。
-- repo 內 checked-in v2 runtime material 目前使用 OpenFHE `TOY` key，方便快速測試；`generate_openfhe_keypair <dir> STD128` 已支援重新產生正常 OpenFHE paramset 的 keypair，再交給 `export_openfhe_lwe_int_material` 匯出同一個 4-bit demo 的 material。
+- repo 內不保存大型 STD128 runtime artifact；`openfhe_emp_v2_runtime` 會在容器 `/tmp` 內臨時產生 key/material/runtime，避免把數百 MB 產物 commit 進 repo。
 - v2 runtime 的 GC artifact 已經把 `hsk.s_mod_q` 變成 selected labels，並新增 serialization boundary audit；但這不是 reusable GC 的密碼學安全證明。
 - v2 runtime 的 `x' <- x' + one'` 是 integer LWE ciphertext component-wise addition；如果之後要回到 bit-level OpenFHE `EvalBinGate` loop update，仍要處理 evaluation keys / bootstrapping。
-- Docker `openfhe_emp_v2_runtime` 的 EMP 實跑目前還沒完成，因為本機 Docker daemon 連不上；Dockerfile/compose 入口已準備好，等 Docker daemon 啟動即可跑。
 - `openfhe_controlled_reveal_reference.cpp` 已有真實 OpenFHE TOY hsk、`q=512`、`phase + q/(2p)` rounding，並移除 semantic gate decode；但 `EvalAccCGGI`、`ExternalProductCGGI`、`SwitchCTtoqn` 還不是 OpenFHE 1.5.0 bit-accurate bootstrap/key-switch 展開。
 - `export_openfhe_eval_key_material` 已能產生固定 eval-key integer arrays，但這些 flat words 還沒被 exact layout 接入 standalone controlled-reveal source。
 - EMP half-gates backend 已經是真實 GC library path；但目前採用 relaxed/offline demo label 發放模型，沒有做 OT、single-use enforcement 或 leakage 評估。

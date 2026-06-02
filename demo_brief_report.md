@@ -10,9 +10,37 @@
 bash tests/test_openfhe_lwe_int_runtime_demo.sh
 ```
 
-### STD128 驗證版
+### STD128 + EMP 現場展示版
 
-若要跑正常 OpenFHE `STD128` 參數：
+若要展示目前主線 demo，直接跑：
+
+```bash
+./run_emp_showcase.sh
+```
+
+它會在 Docker 內完成：
+
+```text
+OpenFHE STD128 key generation
+OpenFHE LWE integer material export
+EMP half-gates GC setup
+evaluator runtime loop
+```
+
+展示時重點看這幾行輸出：
+
+```text
+GC backend: EMP half-gates
+Evaluator runtime did not load hpk or hsk
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
+
+這條路線的展示 material 都在容器 `/tmp` 內產生，結束後不會把大型 key、GC artifact 或 poster 產物留在 repo。
+
+### STD128 測試版
+
+若要在本機跑正常 OpenFHE `STD128` 參數的測試：
 
 ```bash
 RUN_STD128_OPENFHE_TEST=1 \
@@ -21,9 +49,9 @@ RUN_STD128_OPENFHE_TEST=1 \
 
 `STD128` 版本會產生大型臨時 material，測試結束會自動清掉。先前實測約需要 `571MB` key material 和 `174MB` runtime artifact。這個指令適合證明正常參數跑得通，但不適合現場展示檔案，因為跑完會清掉產物。
 
-### 現場展示推薦流程
+### Local fallback 檔案檢查版
 
-若要展示 `STD128` 正式參數，建議直接跑展示腳本。它會保留產物，不會像測試腳本一樣自動清掉：
+如果你需要保留 GC 前 Boolean circuit、runtime material、GC artifact 檔案給教授看，可以跑 local fallback 腳本：
 
 ```bash
 ./run_std128_showcase.sh
@@ -35,9 +63,12 @@ RUN_STD128_OPENFHE_TEST=1 \
 artifacts/std128_showcase/
 ```
 
-展示時重點看這幾行輸出：
+注意：這個 local 腳本預設使用本機 active backend；若本機沒有 EMP headers/lib，會走 `in-repo minimal fallback`。因此正式 EMP 展示請用 `./run_emp_showcase.sh`。
+
+檔案檢查時可看這幾行輸出：
 
 ```text
+GC backend: in-repo minimal fallback
 Evaluator runtime did not load hpk or hsk
 Predicate sequence: 1,1,1,1,1,0
 Encrypted loop iterations executed: 5
@@ -140,7 +171,17 @@ examples/openfhe_lwe_int_runtime_demo.cpp
 
 Evaluator runtime，只載入 `a'`、`b'`、`one'`、circuit shape、GC artifact，不載入 `hpk/hsk`。
 
-重要產物：
+EMP Docker 展示入口：
+
+```text
+run_emp_showcase.sh
+docker-compose.yml
+Dockerfile
+```
+
+`run_emp_showcase.sh` 會呼叫 `openfhe_emp_v2_runtime` service，在 Docker 內使用 `USE_EMP_GC=ON` 和 EMP half-gates backend 跑完整 runtime demo。
+
+Local fallback 重要產物：
 
 ```text
 artifacts/std128_showcase/full_setup_material.txt

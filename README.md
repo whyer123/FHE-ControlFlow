@@ -135,7 +135,22 @@ Evaluator runtime:
   does not load hpk or hsk
 ```
 
-Run it locally:
+Run the EMP-backed STD128 showcase:
+
+```bash
+./run_emp_showcase.sh
+```
+
+The expected runtime evidence is:
+
+```text
+GC backend: EMP half-gates
+Evaluator runtime did not load hpk or hsk
+Predicate sequence: 1,1,1,1,1,0
+Encrypted loop iterations executed: 5
+```
+
+For a faster local regression without EMP, run:
 
 ```bash
 bash tests/test_openfhe_lwe_int_runtime_demo.sh
@@ -276,9 +291,9 @@ docker-compose run --rm gc_mock \
   artifacts/openfhe_lwe_int_runtime_docker_tmp
 ```
 
-Alternatively, use the combined OpenFHE + EMP service. It generates the
-OpenFHE LWE integer material and then runs the EMP-backed v2 runtime in the
-same container:
+Alternatively, use the combined OpenFHE + EMP service directly. It generates
+STD128 OpenFHE LWE integer material and then runs the EMP-backed v2 runtime in
+the same container:
 
 ```bash
 docker-compose run --rm openfhe_emp_v2_runtime

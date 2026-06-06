@@ -147,7 +147,8 @@ int main(int argc, char** argv) {
 
     std::vector<bool> predicate_sequence;
     size_t iterations = 0;
-    constexpr size_t kMaxDemoIterations = 64;
+    const size_t max_demo_iterations =
+        static_cast<size_t>(material.plaintext_modulus) + 1U;
 
     while (true) {
         const bool predicate =
@@ -158,7 +159,7 @@ int main(int argc, char** argv) {
         }
 
         ++iterations;
-        Require(iterations <= kMaxDemoIterations,
+        Require(iterations <= max_demo_iterations,
                 "runtime demo exceeded max iteration guard.");
         state = AddCiphertextsModQ(state, one);
     }

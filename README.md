@@ -135,10 +135,29 @@ Evaluator runtime:
   does not load hpk or hsk
 ```
 
-Run the EMP-backed STD128 showcase:
+Run the formal EMP-backed STD128 demo:
 
 ```bash
-./run_emp_showcase.sh
+./run_formal_demo.sh
+```
+
+`./run_demo.sh` is kept as a short alias for the same formal demo.
+
+The formal demo saves terminal output and inspectable runtime artifacts under:
+
+```text
+artifacts/formal_emp_showcase/
+```
+
+Useful files after a run:
+
+```text
+artifacts/formal_emp_showcase/formal_emp_demo_output.txt
+artifacts/formal_emp_showcase/runtime_output.txt
+artifacts/formal_emp_showcase/full_setup_material.txt
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_circuit_g_demo.txt
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_gc_artifact.bin
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_runtime_material.txt
 ```
 
 The expected runtime evidence is:

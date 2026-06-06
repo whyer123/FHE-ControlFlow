@@ -70,4 +70,24 @@ services:
       grep -q 'GC backend: EMP half-gates'
       /tmp/openfhe_emp_v2/runtime_output.txt;
       grep -q 'Predicate sequence: 1,1,1,1,1,0'
-      /tmp/openfhe_emp_v2/runtime_output.txt"
+      /tmp/openfhe_emp_v2/runtime_output.txt;
+      if [ -n \"$${FORMAL_EMP_SHOWCASE_DIR:-}\" ]; then
+      mkdir -p \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime\";
+      cp /tmp/openfhe_emp_v2/material.txt
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/full_setup_material.txt\";
+      cp /tmp/openfhe_emp_v2/setup_output.txt
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/setup_output.txt\";
+      cp /tmp/openfhe_emp_v2/runtime_output.txt
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime_output.txt\";
+      cp /tmp/openfhe_emp_v2/runtime/openfhe_lwe_int_runtime_material.txt
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime/\";
+      cp /tmp/openfhe_emp_v2/runtime/openfhe_lwe_int_runtime_manifest.md
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime/\";
+      cp /tmp/openfhe_emp_v2/runtime/openfhe_lwe_int_circuit_g_demo.txt
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime/\";
+      cp /tmp/openfhe_emp_v2/runtime/openfhe_lwe_int_circuit_shape.bin
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime/\";
+      cp /tmp/openfhe_emp_v2/runtime/openfhe_lwe_int_gc_artifact.bin
+      \"$${FORMAL_EMP_SHOWCASE_DIR}/runtime/\";
+      echo \"Saved formal EMP showcase artifacts to $${FORMAL_EMP_SHOWCASE_DIR}\";
+      fi"

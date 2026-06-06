@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -39,6 +40,20 @@ uint64_t ParsePlaintext(const char* value,
     Require(plaintext < plaintext_modulus,
             label + " must be smaller than plaintext modulus.");
     return plaintext;
+}
+
+bool IsPowerOfTwo(uint64_t value) {
+    return value != 0 && (value & (value - 1U)) == 0;
+}
+
+size_t Log2PowerOfTwo(uint64_t value, const std::string& label) {
+    Require(IsPowerOfTwo(value), label + " must be a power of two.");
+    size_t bits = 0;
+    while (value > 1U) {
+        value >>= 1U;
+        ++bits;
+    }
+    return bits;
 }
 
 uint64_t DecodeWithExportedSecret(const LWEPrivateKey& hsk,
@@ -129,6 +144,7 @@ void WriteCiphertextWithDec(std::ostream& out,
 }
 
 void WriteManifest(const std::filesystem::path& path,
+                   size_t logical_plaintext_bits,
                    uint64_t plaintext_modulus,
                    uint64_t a_plaintext,
                    uint64_t b_plaintext,
@@ -148,7 +164,7 @@ void WriteManifest(const std::filesystem::path& path,
     out << "It exports real OpenFHE-generated LWE integer ciphertext fields and "
            "the matching fixed hsk coefficients for GC setup.\n\n";
     out << "format = openfhe_lwe_int_setup_material_v1\n";
-    out << "logical_plaintext_bits = 4\n";
+    out << "logical_plaintext_bits = " << logical_plaintext_bits << "\n";
     out << "plaintext_modulus = " << plaintext_modulus << "\n";
     out << "hsk.dimension = " << secret.GetLength() << "\n";
     out << "hsk.modulus = " << ToU64(secret.GetModulus()) << "\n";
@@ -176,18 +192,27 @@ int main(int argc, char** argv) {
         argc > 2 ? std::filesystem::path(argv[2])
                  : key_dir / "v2_lwe_integer_material.txt";
 
-    constexpr uint64_t kPlaintextModulus = 16;
-    Require(argc == 1 || argc == 2 || argc == 3 || argc == 5 || argc == 6,
+    constexpr uint64_t kDefaultPlaintextModulus = 16;
+    Require(argc == 1 || argc == 2 || argc == 3 || argc == 5 || argc == 6 ||
+                argc == 7,
             "usage: export_openfhe_lwe_int_material [key-dir] [output-path] "
-            "[a_plaintext b_plaintext [one_plaintext]]");
+            "[a_plaintext b_plaintext [one_plaintext [plaintext_modulus]]]");
+    const uint64_t plaintext_modulus =
+        argc > 6 ? std::stoull(argv[6]) : kDefaultPlaintextModulus;
+    Require(plaintext_modulus <=
+                static_cast<uint64_t>(std::numeric_limits<LWEPlaintext>::max()),
+            "plaintext_modulus is too large for OpenFHE LWEPlaintext.");
+    const auto logical_plaintext_bits =
+        Log2PowerOfTwo(plaintext_modulus, "plaintext_modulus");
+
     const uint64_t a_plaintext =
-        argc > 3 ? ParsePlaintext(argv[3], kPlaintextModulus, "a_plaintext")
+        argc > 3 ? ParsePlaintext(argv[3], plaintext_modulus, "a_plaintext")
                  : 3;
     const uint64_t b_plaintext =
-        argc > 4 ? ParsePlaintext(argv[4], kPlaintextModulus, "b_plaintext")
+        argc > 4 ? ParsePlaintext(argv[4], plaintext_modulus, "b_plaintext")
                  : 7;
     const uint64_t one_plaintext =
-        argc > 5 ? ParsePlaintext(argv[5], kPlaintextModulus, "one_plaintext")
+        argc > 5 ? ParsePlaintext(argv[5], plaintext_modulus, "one_plaintext")
                  : 1;
 
     BinFHEContext cc;
@@ -224,19 +249,19 @@ int main(int argc, char** argv) {
     cc.BTKeyLoad(eval_keys);
 
     auto a_prime = EncryptVerifyAndExport(cc, hpk, hsk, a_plaintext,
-                                          kPlaintextModulus, "a_prime");
+                                          plaintext_modulus, "a_prime");
     auto b_prime = EncryptVerifyAndExport(cc, hpk, hsk, b_plaintext,
-                                          kPlaintextModulus, "b_prime");
+                                          plaintext_modulus, "b_prime");
     auto one_prime = EncryptVerifyAndExport(cc, hpk, hsk, one_plaintext,
-                                            kPlaintextModulus, "one_prime");
+                                            plaintext_modulus, "one_prime");
 
-    WriteManifest(output_path, kPlaintextModulus,
+    WriteManifest(output_path, logical_plaintext_bits, plaintext_modulus,
                   a_plaintext, b_plaintext, one_plaintext, hsk,
                   a_prime, b_prime, one_prime);
 
     std::cout << "Exported OpenFHE LWE integer material to "
               << output_path.string() << "\n";
-    std::cout << "  plaintext modulus: " << kPlaintextModulus << "\n";
+    std::cout << "  plaintext modulus: " << plaintext_modulus << "\n";
     std::cout << "  ciphertext dimension: " << a_prime->GetLength() << "\n";
     std::cout << "  ciphertext modulus: "
               << ToU64(a_prime->GetModulus()) << "\n";

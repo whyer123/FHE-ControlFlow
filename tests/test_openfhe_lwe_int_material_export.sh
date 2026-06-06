@@ -36,6 +36,23 @@ grep -q "b_prime.manual_dec = 7" "$material"
 grep -q "one_prime.plaintext = 1" "$material"
 grep -q "one_prime.manual_dec = 1" "$material"
 
+./build-local/export_openfhe_lwe_int_material \
+    "$key_dir" \
+    "$out_dir/v2_lwe_integer_material_p8.txt" \
+    0 \
+    7 \
+    1 \
+    8 >/dev/null
+
+grep -q "logical_plaintext_bits = 3" \
+    "$out_dir/v2_lwe_integer_material_p8.txt"
+grep -q "plaintext_modulus = 8" \
+    "$out_dir/v2_lwe_integer_material_p8.txt"
+grep -q "a_prime.plaintext = 0" \
+    "$out_dir/v2_lwe_integer_material_p8.txt"
+grep -q "b_prime.plaintext = 7" \
+    "$out_dir/v2_lwe_integer_material_p8.txt"
+
 cmake --build build-local \
     --target openfhe_lwe_int_decrypt_compare_circuit_test \
     --parallel 2 >/dev/null

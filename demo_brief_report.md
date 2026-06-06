@@ -15,8 +15,10 @@ bash tests/test_openfhe_lwe_int_runtime_demo.sh
 若要展示目前主線 demo，直接跑：
 
 ```bash
-./run_emp_showcase.sh
+./run_formal_demo.sh
 ```
+
+`./run_demo.sh` 也會執行同一條正式 demo。
 
 它會在 Docker 內完成：
 
@@ -36,7 +38,25 @@ Predicate sequence: 1,1,1,1,1,0
 Encrypted loop iterations executed: 5
 ```
 
-這條路線的展示 material 都在容器 `/tmp` 內產生，結束後不會把大型 key、GC artifact 或 poster 產物留在 repo。
+這條路線的 setup material 先在容器 `/tmp` 內產生；demo 結束前會把可展示的輸出與 runtime artifacts 複製到 repo 的 ignored `artifacts/` 目錄。
+正式 demo 會把可檢查的結果保存到：
+
+```text
+artifacts/formal_emp_showcase/
+```
+
+其中：
+
+```text
+artifacts/formal_emp_showcase/formal_emp_demo_output.txt
+artifacts/formal_emp_showcase/runtime_output.txt
+artifacts/formal_emp_showcase/full_setup_material.txt
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_circuit_g_demo.txt
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_gc_artifact.bin
+artifacts/formal_emp_showcase/runtime/openfhe_lwe_int_runtime_material.txt
+```
+
+`formal_emp_demo_output.txt` 是整段終端機輸出；`runtime/` 下面是 evaluator runtime 實際載入或可展示的 GC/circuit material。
 
 ### STD128 測試版
 

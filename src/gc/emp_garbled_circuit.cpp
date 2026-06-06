@@ -74,6 +74,25 @@ emp::block RequireWireLabel(
     return it->second;
 }
 
+emp::block RequireWireLabel(const std::vector<emp::block>& wire_labels,
+                            const std::vector<uint8_t>& ready,
+                            WireId wire) {
+    if (wire >= wire_labels.size() || !ready[wire]) {
+        throw std::invalid_argument("EMP GC gate references an unset wire.");
+    }
+    return wire_labels[wire];
+}
+
+size_t WireStorageSize(const BooleanCircuit& circuit) {
+    WireId max_wire = 0;
+    for (const auto& wire : circuit.wires) {
+        if (wire.id > max_wire) {
+            max_wire = wire.id;
+        }
+    }
+    return static_cast<size_t>(max_wire) + 1U;
+}
+
 } // namespace
 
 EmpGarbledCircuitArtifact EmpGarbledCircuit::Garble(
@@ -178,7 +197,9 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
     EmpTranscriptIO eva_io(&artifact.transcript);
     emp::HalfGateEva eva(&eva_io);
 
-    std::unordered_map<WireId, emp::block> active_labels;
+    std::vector<emp::block> active_labels(WireStorageSize(circuit));
+    std::vector<uint8_t> ready(active_labels.size(), 0);
+
     for (const auto wire : artifact.input_wires) {
         const auto input_it = input_bits.find(wire);
         if (input_it == input_bits.end()) {
@@ -188,12 +209,17 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
         if (labels_it == artifact.public_input_labels.end()) {
             throw std::invalid_argument("Missing EMP input label pair.");
         }
-        active_labels.emplace(
-            wire, labels_it->second.labels[input_it->second ? 1 : 0]);
+        active_labels[wire] =
+            labels_it->second.labels[input_it->second ? 1 : 0];
+        ready[wire] = 1;
     }
 
     for (const auto& constant : artifact.constant_labels) {
-        active_labels.emplace(constant.first, constant.second);
+        if (constant.first >= active_labels.size()) {
+            throw std::invalid_argument("EMP constant wire is out of range.");
+        }
+        active_labels[constant.first] = constant.second;
+        ready[constant.first] = 1;
     }
 
     for (const auto& gate : circuit.gates) {
@@ -203,8 +229,8 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
             if (gate.inputs.size() != 2) {
                 throw std::invalid_argument("EMP AND gate expects two inputs.");
             }
-            auto lhs = RequireWireLabel(active_labels, gate.inputs[0]);
-            auto rhs = RequireWireLabel(active_labels, gate.inputs[1]);
+            auto lhs = RequireWireLabel(active_labels, ready, gate.inputs[0]);
+            auto rhs = RequireWireLabel(active_labels, ready, gate.inputs[1]);
             eva.and_gate(&output_label, &lhs, &rhs);
             break;
         }
@@ -212,8 +238,8 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
             if (gate.inputs.size() != 2) {
                 throw std::invalid_argument("EMP XOR gate expects two inputs.");
             }
-            auto lhs = RequireWireLabel(active_labels, gate.inputs[0]);
-            auto rhs = RequireWireLabel(active_labels, gate.inputs[1]);
+            auto lhs = RequireWireLabel(active_labels, ready, gate.inputs[0]);
+            auto rhs = RequireWireLabel(active_labels, ready, gate.inputs[1]);
             eva.xor_gate(&output_label, &lhs, &rhs);
             break;
         }
@@ -222,27 +248,32 @@ std::vector<bool> EmpGarbledCircuit::Evaluate(
                 throw std::invalid_argument("EMP NOT gate expects one input.");
             }
             output_label =
-                RequireWireLabel(active_labels, gate.inputs[0]) ^ artifact.delta;
+                RequireWireLabel(active_labels, ready, gate.inputs[0]) ^
+                artifact.delta;
             break;
         }
         case BitGateKind::Output: {
             if (gate.inputs.size() != 1) {
                 throw std::invalid_argument("EMP OUTPUT gate expects one input.");
             }
-            output_label = RequireWireLabel(active_labels, gate.inputs[0]);
+            output_label = RequireWireLabel(active_labels, ready, gate.inputs[0]);
             break;
         }
         case BitGateKind::Mux:
             throw std::invalid_argument("EMP backend does not yet lower MUX gates.");
         }
 
+        if (gate.output >= active_labels.size()) {
+            throw std::invalid_argument("EMP output wire is out of range.");
+        }
         active_labels[gate.output] = output_label;
+        ready[gate.output] = 1;
     }
 
     std::vector<bool> outputs;
     outputs.reserve(artifact.output_wires.size());
     for (const auto wire : artifact.output_wires) {
-        auto active = RequireWireLabel(active_labels, wire);
+        auto active = RequireWireLabel(active_labels, ready, wire);
         const auto zero_it = artifact.output_zero_labels.find(wire);
         if (zero_it == artifact.output_zero_labels.end()) {
             throw std::invalid_argument("Missing EMP output zero label.");
